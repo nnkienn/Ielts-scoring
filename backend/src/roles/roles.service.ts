@@ -18,18 +18,10 @@ export class RolesService {
   }
 
   findAll() {
-    return `This action returns all roles`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} role`;
-  }
-
-  update(id: number, updateRoleDto: UpdateRoleDto) {
-    return `This action updates a #${id} role`;
+    return this.prismaService.role.findMany();
   }
 
   remove(id: number) {
-    return `This action removes a #${id} role`;
+    return this.prismaService.role.delete({where : {id}});
   }
 }

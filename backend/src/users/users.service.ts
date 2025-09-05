@@ -10,10 +10,6 @@ export class UsersService {
   constructor(private prismaService: PrismaService) { }
 
 
-  findAll() {
-    return this.prismaService.user.findMany();
-  }
-
   findOne(id: number) {
     return this.prismaService.user.findUnique({ where: { id } });
   }
