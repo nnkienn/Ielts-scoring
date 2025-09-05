@@ -1,20 +1,26 @@
 "use client";
 
+import { useAppDispatch } from "@/hook/useAppDispatch";
+import { registerUser } from "@/store/Slices/authSlice";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
 export default function RegisterForm() {
+  const dispatch = useAppDispatch();
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // 👉 Demo: chỉ log ra console, chưa call API
-    console.log("Register:", { name, email, password });
-    router.push("/homepage");
+    const res = await dispatch(registerUser({name,email,password}));
+    if(registerUser.fulfilled.match(res)){
+      router.push('/homepage')
+    }
+  
   };
 
   return (

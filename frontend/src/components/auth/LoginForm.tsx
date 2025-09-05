@@ -1,21 +1,28 @@
 "use client";
 
+import { useAppDispatch } from "@/hook/useAppDispatch";
+import { useAppSelector } from "@/hook/useAppSelector";
+import { loginUser } from "@/store/Slices/authSlice";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function LoginPage() {
+  const dispatch = useAppDispatch();
+  const {loading,error} = useAppSelector((state)=>state.auth);
+  
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [socialLoading, setSocialLoading] = useState<"google" | "facebook" | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // 👉 demo: chỉ log ra console, bạn tự xử lý API sau
-    console.log("Login:", { email, password });
-    router.push("/homepage");
+    const res = await dispatch(loginUser({email,password}));
+    if(loginUser.fulfilled.match(res)){
+      router.push("/homepage");
+    }
   };
 
   const handleGoogle = () => {
@@ -63,13 +70,14 @@ export default function LoginPage() {
                 className="border-2 w-full border-gray-200 rounded-2xl px-4 py-2 text-gray-600"
               />
             </div>
-
+             {loading ? "Logging in..." : "Login"}
             <button
               type="submit"
               className="w-full rounded-2xl px-4 py-2 text-white font-bold bg-green-500 hover:bg-green-700 transition"
             >
               Login
             </button>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
           </form>
 
           {/* Register link */}
