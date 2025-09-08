@@ -17,9 +17,22 @@ model User {
   avatar    String?
   gooleId String ? @unique
   facebookId String ? @unique
+  translations Translation[]
 }
 model Role {
   id    Int     @id @default(autoincrement())
   name  String  @unique
   users User[]
+}
+model Translation {
+  id       Int      @id @default(autoincrement())
+  userId   Int?
+  user     User?    @relation(fields: [userId], references: [id])
+  sourceLang String
+  targetLang String
+  originalText String
+  translatedText String
+  createdAt DateTime @default(now())
+  fromCache Boolean  @default(false)
+
 }

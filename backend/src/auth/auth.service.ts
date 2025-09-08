@@ -7,6 +7,8 @@ import { UsersService, UserWithRole } from 'src/users/users.service';
 import { Response } from 'express';
 import { LoginDto } from './dto/login-auth.dto';
 import * as bcrypt from 'bcrypt';
+import { GoogleProfile } from './strategies/google.strategy';
+import { FacebookProfile } from './strategies/facebook.strategy';
 
 @Injectable()
 export class AuthService {
@@ -18,14 +20,13 @@ export class AuthService {
   ) { }
 
   public setRefreshCookie(res: Response, refreshToken: string) {
-    const isProd =
-      (this.configservice.get<string>('NODE_ENV') || process.env.NODE_ENV) === 'production';
+    const isProd = (this.configservice.get<string>('NODE_ENV') || process.env.NODE_ENV) === 'production';
 
     res.cookie('rt', refreshToken, {
       httpOnly: true,
-      sameSite: isProd ? ('none' as const) : ('lax' as const),
-      secure: isProd,
-      path: '/', // 👈 Quan trọng để cookie gửi ở mọi route
+      sameSite: isProd ? 'none' : 'lax',  // 👈 local để 'lax', prod HTTPS để 'none'
+      secure: isProd,                      // 👈 local false, prod true
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
   }
@@ -110,6 +111,91 @@ export class AuthService {
       backendTokens: tokens
     }
   }
+
+  async socialLoginGoogle(profile: GoogleProfile): Promise<{ user: UserWithRole, tokens: { accessToken: string, refreshToken: string } }> {
+    let user = await this.prismaService.user.findFirst({
+      where: { gooleId: profile.providerId },
+      include: { role: true }
+    });
+
+    if (!user && profile.email) {
+      const exist = await this.userService.findByEmail(profile.email);
+      if (exist) {
+        user = await this.prismaService.user.update({
+          where: { id: exist.id },
+          data: {
+            gooleId: profile.providerId,
+            avatar: profile.avatar ?? exist.avatar,
+          },
+          include: { role: true }
+        });
+      }
+      if (!user) {
+        const fallbackEmail = profile.email ?? `u_google_${profile.providerId}@example.local`
+        const dummyPass = await bcrypt.hash('oauth_' + profile.providerId, 10);
+
+        user = await this.prismaService.user.create({
+          data: {
+            email: fallbackEmail,
+            password: dummyPass,
+            name: profile.name,
+            avatar: profile.avatar,
+            roleId: 2,
+            gooleId: profile.providerId
+          },
+          include: { role: true }
+        })
+      }
+    }
+
+    if (!user) throw new UnauthorizedException('Google login failed');
+
+    const tokens = await this.issueTokens(user as UserWithRole);
+    return { user, tokens };
+  }
+  async socialLoginFacebook(profile: FacebookProfile): Promise<{ user: UserWithRole; tokens: { accessToken: string; refreshToken: string } }> {
+    let user = await this.prismaService.user.findFirst({
+      where: { facebookId: profile.providerId },
+      include: { role: true },
+    });
+
+    if (!user && profile.email) {
+      const exist = await this.userService.findByEmail(profile.email);
+      if (exist) {
+        user = await this.prismaService.user.update({
+          where: { id: exist.id },
+          data: {
+            facebookId: profile.providerId,
+            avatar: profile.avatar ?? exist.avatar,
+          },
+          include: { role: true },
+        });
+      }
+      if (!user) {
+        const fallbackEmail = profile.email ?? `u_fb_${profile.providerId}@example.local`;
+        const dummyPass = await bcrypt.hash('oauth_' + profile.providerId, 10);
+
+        user = await this.prismaService.user.create({
+          data: {
+            email: fallbackEmail,
+            password: dummyPass,
+            name: profile.name,
+            avatar: profile.avatar,
+            roleId: 2,
+            facebookId: profile.providerId,
+          },
+          include: { role: true },
+        });
+      }
+    }
+
+    if (!user) throw new UnauthorizedException('Facebook login failed');
+
+    const tokens = await this.issueTokens(user as UserWithRole);
+    return { user, tokens };
+  }
+
+
 
 
 }

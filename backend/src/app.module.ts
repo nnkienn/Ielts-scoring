@@ -11,6 +11,9 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtGuard } from './common/decorators/jwt.guard';
 import { RolesGuard } from './common/decorators/roles.guard';
 import { AdminModule } from './admin/admin.module';
+import Redis from 'ioredis';
+import { RedisService } from './redis.service';
+import { TranslateModule } from './translate/translate.module';
 
 
 @Module({
@@ -21,9 +24,11 @@ import { AdminModule } from './admin/admin.module';
     AuthModule,
     RolesModule,
     AdminModule,
+    TranslateModule,
   ],
   controllers: [AppController],
   providers: [
+    RedisService,
     AppService,
     PrismaService,
     { provide: APP_GUARD, useClass: JwtGuard },   // chạy TRƯỚC
