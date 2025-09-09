@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,32 +6,105 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 model User {
-  id           Int           @id @default(autoincrement())
-  email        String        @unique
-  password     String
-  name         String?
-  roleId       Int
-  role         Role          @relation(fields: [roleId], references: [id])
-  avatar    String?
-  gooleId String ? @unique
-  facebookId String ? @unique
+  id         Int     @id @default(autoincrement())
+  email      String  @unique
+  password   String
+  name       String?
+  roleId     Int
+  role       Role    @relation(fields: [roleId], references: [id])
+  avatar     String?
+  googleId   String? @unique
+  facebookId String? @unique
+
+  // credits
+  freeCredits Int     @default(5)
+  paidCredits Int     @default(0)
+  stripeId    String? // stripe customer id
+
+  // relations
   translations Translation[]
+  essays       EssaySubmission[]
+  payments     Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
+
 model Role {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique
+  id    Int    @id @default(autoincrement())
+  name  String @unique
   users User[]
 }
-model Translation {
-  id       Int      @id @default(autoincrement())
-  userId   Int?
-  user     User?    @relation(fields: [userId], references: [id])
-  sourceLang String
-  targetLang String
-  originalText String
-  translatedText String
-  createdAt DateTime @default(now())
-  fromCache Boolean  @default(false)
 
+model Translation {
+  id             Int      @id @default(autoincrement())
+  userId         Int?
+  user           User?    @relation(fields: [userId], references: [id])
+  sourceLang     String
+  targetLang     String
+  originalText   String
+  translatedText String
+  createdAt      DateTime @default(now())
+  fromCache      Boolean  @default(false)
+}
+
+model Prompt {
+  id        Int               @id @default(autoincrement())
+  taskType  String // "Task1" | "Task2"
+  question  String
+  essays    EssaySubmission[]
+  createdAt DateTime          @default(now())
+}
+
+model EssaySubmission {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  promptId  Int
+  text      String
+  grading   AIGrading?
+  createdAt DateTime   @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  prompt Prompt @relation(fields: [promptId], references: [id])
+}
+
+model AIGrading {
+  id                Int      @id @default(autoincrement())
+  submissionId      Int      @unique
+  overallBand       Float
+  taskResponse      Float
+  coherenceCohesion Float
+  lexicalResource   Float
+  grammaticalRange  Float
+  feedback          String
+  createdAt         DateTime @default(now())
+
+  submission EssaySubmission @relation(fields: [submissionId], references: [id])
+}
+
+model Plan {
+  id            Int       @id @default(autoincrement())
+  name          String
+  price         Int // in cents (USD)
+  credits       Int
+  stripePriceId String    @unique
+  isActive      Boolean   @default(true)
+  payments      Payment[]
+  createdAt     DateTime  @default(now())
+}
+
+model Payment {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  planId    Int
+  stripeId  String // checkout id / payment intent id
+  amount    Int
+  currency  String   @default("usd")
+  status    String // succeeded / failed / pending
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  plan Plan @relation(fields: [planId], references: [id])
 }
