@@ -31,5 +31,6 @@ export const config = {
     "/signin",
     "/signup",
     "/homepage",
+    "/translate",
   ],
 };

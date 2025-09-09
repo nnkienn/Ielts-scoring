@@ -6,7 +6,7 @@ import { loginUser } from "@/store/Slices/authSlice";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 export default function LoginPage() {
   const dispatch = useAppDispatch();
   const {loading,error} = useAppSelector((state)=>state.auth);
@@ -25,14 +25,28 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogle = () => {
+const handleGoogle = () => {
+  try {
     setSocialLoading("google");
-    // 👉 demo: redirect giả
-    console.log("Redirect to Google OAuth...");
-    setTimeout(() => {
-      router.push("/homepage?social=1");
-    }, 1000);
-  };
+    const nextUrl =
+      typeof window !== "undefined"
+        ? encodeURIComponent(`${window.location.origin}/homepage?social=1`)
+        : "";
+    // Truyền vào state
+    window.location.href = `${API_BASE}/auth/google?state=${nextUrl}`;
+  } catch (error) {
+    console.error(error);
+  }
+};
+const handleFacebook = () => {
+  setSocialLoading("facebook");
+  const nextUrl =
+    typeof window !== "undefined"
+      ? encodeURIComponent(`${window.location.origin}/homepage?social=fb`)
+      : "";
+  window.location.href = `${API_BASE}/auth/facebook?state=${nextUrl}`;
+};
+
 
   return (
     <div className="flex min-h-screen w-screen items-center justify-center bg-gray-200 p-4">
@@ -101,11 +115,11 @@ export default function LoginPage() {
 
           {/* Social Login */}
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
-            <button
+           <button
               type="button"
-              disabled
-              className="flex-1 flex items-center justify-center space-x-2 text-gray-400 rounded-md border px-4 py-2 bg-gray-50 cursor-not-allowed"
-              title="Coming soon"
+              onClick={handleFacebook}
+              disabled={!!socialLoading}
+              className="flex-1 flex items-center justify-center space-x-2 text-gray-700 rounded-md border px-4 py-2 hover:bg-gray-50"
             >
               <img src="/images/facebook.jpg" alt="facebook" className="h-5 w-5" />
               <span>Login with Facebook</span>

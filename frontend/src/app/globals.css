@@ -19,6 +19,21 @@
   }
 }
 
+/* Xóa border, outline và reset style của editor */
+.ProseMirror {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Reset style mặc định của <p> bên trong */
+.ProseMirror p {
+  margin: 0;
+  border: none;
+  outline: none;
+}
+
+
 body {
   background: var(--background);
   color: var(--foreground);
