@@ -17,20 +17,21 @@ export class AuthService {
     private jwtService: JwtService,
     private configservice: ConfigService,
     private userService: UsersService
-  ) { }
+  ) {}
 
   public setRefreshCookie(res: Response, refreshToken: string) {
-    const isProd = (this.configservice.get<string>('NODE_ENV') || process.env.NODE_ENV) === 'production';
+    const isProd =
+      (this.configservice.get<string>('NODE_ENV') ||
+        process.env.NODE_ENV) === 'production';
 
     res.cookie('rt', refreshToken, {
       httpOnly: true,
-      sameSite: isProd ? 'none' : 'lax',  // 👈 local để 'lax', prod HTTPS để 'none'
-      secure: isProd,                      // 👈 local false, prod true
+      sameSite: isProd ? 'none' : 'lax',
+      secure: isProd,
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
   }
-
 
   private async issueTokens(user: UserWithRole) {
     const payload = {
@@ -52,13 +53,16 @@ export class AuthService {
         expiresIn: this.configservice.get<string>('JWT_REFRESH_EXPIRES_IN'),
       },
     );
-    return { accessToken, refreshToken }
+    return { accessToken, refreshToken };
   }
 
   async validateUser(loginDto: LoginDto): Promise<UserWithRole> {
     const user = await this.userService.findByEmail(loginDto.email);
-    if (!user) throw new UnauthorizedException("Email not found");
-    const isPasswordMatch = await bcrypt.compare(loginDto.password, user.password);
+    if (!user) throw new UnauthorizedException('Email not found');
+    const isPasswordMatch = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
     if (!isPasswordMatch) {
       throw new UnauthorizedException('Password invalid');
     }
@@ -67,38 +71,44 @@ export class AuthService {
 
   async refreshToken(refreshToken: string) {
     try {
-      const payload = await this.jwtService.verifyAsync<{ sub: number; email: string }>(
-        refreshToken,
-        { secret: this.configservice.get<string>('JWT_REFRESH_SECRET') }
-      )
+      const payload = await this.jwtService.verifyAsync<{
+        sub: number;
+        email: string;
+      }>(refreshToken, {
+        secret: this.configservice.get<string>('JWT_REFRESH_SECRET'),
+      });
       const user = await this.prismaService.user.findUnique({
         where: { id: payload.sub },
-        include: { role: true }
-      })
+        include: { role: true },
+      });
       if (!user) throw new UnauthorizedException('User not found');
-      const { accessToken } = await this.issueTokens(user as UserWithRole)
-      return { accessToken }
+      const { accessToken } = await this.issueTokens(user as UserWithRole);
+      return { accessToken };
     } catch (error) {
-      throw new UnauthorizedException('invalid refresh token')
+      throw new UnauthorizedException('invalid refresh token');
     }
   }
 
   async register(registerDto: RegisterDto) {
     const { email, password, name, roleId } = registerDto;
-    const existingEmail = await this.prismaService.user.findUnique({ where: { email } })
+    const existingEmail = await this.prismaService.user.findUnique({
+      where: { email },
+    });
+    if (existingEmail) throw new UnauthorizedException('Email already exists');
+
     const hashPassword = await bcrypt.hash(password, 10);
 
     const user = await this.prismaService.user.create({
       data: { email, password: hashPassword, name, roleId },
-      include: { role: true }
-    })
+      include: { role: true },
+    });
     const tokens = await this.issueTokens(user as UserWithRole);
     const { password: _pw, ...userWithoutPassword } = user;
 
     return {
       user: userWithoutPassword,
-      backendTokens: tokens
-    }
+      backendTokens: tokens,
+    };
   }
 
   async login(loginDto: LoginDto) {
@@ -108,14 +118,17 @@ export class AuthService {
 
     return {
       user: userWithoutPassword,
-      backendTokens: tokens
-    }
+      backendTokens: tokens,
+    };
   }
 
-  async socialLoginGoogle(profile: GoogleProfile): Promise<{ user: UserWithRole, tokens: { accessToken: string, refreshToken: string } }> {
+  async socialLoginGoogle(profile: GoogleProfile): Promise<{
+    user: UserWithRole;
+    tokens: { accessToken: string; refreshToken: string };
+  }> {
     let user = await this.prismaService.user.findFirst({
-      where: { gooleId: profile.providerId },
-      include: { role: true }
+      where: { googleId: profile.providerId }, // ✅ sửa đúng tên field
+      include: { role: true },
     });
 
     if (!user && profile.email) {
@@ -124,15 +137,19 @@ export class AuthService {
         user = await this.prismaService.user.update({
           where: { id: exist.id },
           data: {
-            gooleId: profile.providerId,
+            googleId: profile.providerId,
             avatar: profile.avatar ?? exist.avatar,
           },
-          include: { role: true }
+          include: { role: true },
         });
       }
       if (!user) {
-        const fallbackEmail = profile.email ?? `u_google_${profile.providerId}@example.local`
-        const dummyPass = await bcrypt.hash('oauth_' + profile.providerId, 10);
+        const fallbackEmail =
+          profile.email ?? `u_google_${profile.providerId}@example.local`;
+        const dummyPass = await bcrypt.hash(
+          'oauth_' + profile.providerId,
+          10,
+        );
 
         user = await this.prismaService.user.create({
           data: {
@@ -141,10 +158,10 @@ export class AuthService {
             name: profile.name,
             avatar: profile.avatar,
             roleId: 2,
-            gooleId: profile.providerId
+            googleId: profile.providerId, // ✅ sửa đúng tên field
           },
-          include: { role: true }
-        })
+          include: { role: true },
+        });
       }
     }
 
@@ -153,7 +170,11 @@ export class AuthService {
     const tokens = await this.issueTokens(user as UserWithRole);
     return { user, tokens };
   }
-  async socialLoginFacebook(profile: FacebookProfile): Promise<{ user: UserWithRole; tokens: { accessToken: string; refreshToken: string } }> {
+
+  async socialLoginFacebook(profile: FacebookProfile): Promise<{
+    user: UserWithRole;
+    tokens: { accessToken: string; refreshToken: string };
+  }> {
     let user = await this.prismaService.user.findFirst({
       where: { facebookId: profile.providerId },
       include: { role: true },
@@ -172,8 +193,12 @@ export class AuthService {
         });
       }
       if (!user) {
-        const fallbackEmail = profile.email ?? `u_fb_${profile.providerId}@example.local`;
-        const dummyPass = await bcrypt.hash('oauth_' + profile.providerId, 10);
+        const fallbackEmail =
+          profile.email ?? `u_fb_${profile.providerId}@example.local`;
+        const dummyPass = await bcrypt.hash(
+          'oauth_' + profile.providerId,
+          10,
+        );
 
         user = await this.prismaService.user.create({
           data: {
@@ -194,8 +219,4 @@ export class AuthService {
     const tokens = await this.issueTokens(user as UserWithRole);
     return { user, tokens };
   }
-
-
-
-
 }

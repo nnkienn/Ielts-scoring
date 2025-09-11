@@ -73,16 +73,29 @@ model EssaySubmission {
 model AIGrading {
   id                Int      @id @default(autoincrement())
   submissionId      Int      @unique
+
+  // Scores
   overallBand       Float
   taskResponse      Float
   coherenceCohesion Float
   lexicalResource   Float
   grammaticalRange  Float
+
+  // Feedback tổng quan
   feedback          String
+
+  // Extra fields
+  annotations       Json     // list lỗi: start, end, errorType, suggestion
+  vocabulary        Json     // gợi ý từ vựng thay thế
+  sentenceTips      Json     // gợi ý rewrite câu
+  structureTips     String?  // tip về bố cục
+  meta              Json     // wordCount, grammarErrorCount, spellingErrorCount,...
+
   createdAt         DateTime @default(now())
 
   submission EssaySubmission @relation(fields: [submissionId], references: [id])
 }
+
 
 model Plan {
   id            Int       @id @default(autoincrement())

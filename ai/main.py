@@ -1,30 +1,68 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-
 app = FastAPI()
 
+# Request schema
+class EssayRequest(BaseModel):
+    text: str
+    taskType: str   # "Task1" | "Task2"
 
-class GradeIn(BaseModel):
-text: str
+# Response schema
+class GradingResponse(BaseModel):
+    overallBand: float
+    taskResponse: float
+    coherenceCohesion: float
+    lexicalResource: float
+    grammaticalRange: float
+    feedback: str
+    annotations: list
+    vocabulary: list
+    sentenceTips: list
+    structureTips: str | None
+    meta: dict
 
+@app.post("/grade", response_model=GradingResponse)
+def grade(req: EssayRequest):
+    """
+    Mock API: luôn trả dữ liệu grading đủ bộ
+    để backend + frontend test UI & DB.
+    """
+    essay_length = len(req.text.split())
 
-@app.get("/health")
-async def health():
-return {"ok": True}
-
-
-@app.post("/grade")
-async def grade(inp: GradeIn):
-# TODO: replace with real model inference
-length = len(inp.text.split())
-band = max(5.0, min(9.0, 5.0 + (length / 2000.0) * 4.0))
-return {
-"band": round(band, 1),
-"details": {
-"task_response": 6.0,
-"coherence": 6.0,
-"lexical_resource": 6.0,
-"grammar": 6.0
-}
-}
+    return {
+        "overallBand": 7.0,
+        "taskResponse": 7.0,
+        "coherenceCohesion": 7.0,
+        "lexicalResource": 6.5,
+        "grammaticalRange": 7.0,
+        "feedback": f"Mock grading for {req.taskType}: The essay is well-structured but could use more advanced vocabulary.",
+        "annotations": [
+            {
+                "start": 45,
+                "end": 55,
+                "errorType": "grammar",
+                "suggestion": "should use past tense"
+            },
+            {
+                "start": 120,
+                "end": 138,
+                "errorType": "wordChoice",
+                "suggestion": "replace 'big' with 'significant'"
+            }
+        ],
+        "vocabulary": [
+            { "original": "big", "alternative": "significant" },
+            { "original": "good", "alternative": "beneficial" }
+        ],
+        "sentenceTips": [
+            "Instead of 'This is a big problem', say 'This poses a significant challenge for society.'"
+        ],
+        "structureTips": "Expand the introduction with a clear thesis statement.",
+        "meta": {
+            "wordCount": essay_length,
+            "grammarErrorCount": 3,
+            "spellingErrorCount": 1,
+            "cohesionErrorCount": 2
+        }
+    }

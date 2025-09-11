@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
-import { RedisService } from 'src/redis.service';
+import { RedisService } from 'src/config/redis.service';
 import axios from 'axios';
 import { OpenAIService } from 'src/openai.service';
 

@@ -11,9 +11,9 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtGuard } from './common/decorators/jwt.guard';
 import { RolesGuard } from './common/decorators/roles.guard';
 import { AdminModule } from './admin/admin.module';
-import Redis from 'ioredis';
-import { RedisService } from './redis.service';
+import { RedisService } from './config/redis.service';
 import { TranslateModule } from './translate/translate.module';
+import { RabbitMQService } from './config/rabbitmq.service';
 
 
 @Module({
@@ -28,6 +28,7 @@ import { TranslateModule } from './translate/translate.module';
   ],
   controllers: [AppController],
   providers: [
+    RabbitMQService,
     RedisService,
     AppService,
     PrismaService,
