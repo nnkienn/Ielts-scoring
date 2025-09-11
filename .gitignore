@@ -25,6 +25,8 @@ build/
 .env.dev.example
 .env.prod
 .env.prod.example
+.env.development
+.env.production
 
 # =========================
 # Logs & temp
