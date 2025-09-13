@@ -56,15 +56,25 @@ model Prompt {
   question  String
   essays    EssaySubmission[]
   createdAt DateTime          @default(now())
+
+  @@unique([question, taskType]) // ✅ đảm bảo không có 2 prompt giống nhau
+}
+
+
+enum EssayStatus {
+  PENDING
+  DONE
+  FAILED
 }
 
 model EssaySubmission {
-  id        Int        @id @default(autoincrement())
+  id        Int          @id @default(autoincrement())
   userId    Int
   promptId  Int
   text      String
+  status    EssayStatus  @default(PENDING)
   grading   AIGrading?
-  createdAt DateTime   @default(now())
+  createdAt DateTime     @default(now())
 
   user   User   @relation(fields: [userId], references: [id])
   prompt Prompt @relation(fields: [promptId], references: [id])
@@ -96,7 +106,6 @@ model AIGrading {
   submission EssaySubmission @relation(fields: [submissionId], references: [id])
 }
 
-
 model Plan {
   id            Int       @id @default(autoincrement())
   name          String
@@ -115,7 +124,7 @@ model Payment {
   stripeId  String // checkout id / payment intent id
   amount    Int
   currency  String   @default("usd")
-  status    String // succeeded / failed / pending
+  status    String   // succeeded / failed / pending
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])

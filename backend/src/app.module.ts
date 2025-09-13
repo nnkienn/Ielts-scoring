@@ -14,6 +14,8 @@ import { AdminModule } from './admin/admin.module';
 import { RedisService } from './config/redis.service';
 import { TranslateModule } from './translate/translate.module';
 import { RabbitMQService } from './config/rabbitmq.service';
+import { EssayModule } from './essay/essay.module';
+import { EssayProcessor } from './essay/essay.processor';
 
 
 @Module({
@@ -25,9 +27,11 @@ import { RabbitMQService } from './config/rabbitmq.service';
     RolesModule,
     AdminModule,
     TranslateModule,
+    EssayModule,
   ],
   controllers: [AppController],
   providers: [
+    EssayProcessor,
     RabbitMQService,
     RedisService,
     AppService,
