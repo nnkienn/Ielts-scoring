@@ -36,11 +36,11 @@ export default function GradePage() {
       <div className="flex flex-col min-h-screen bg-gray-50 mt-16">
         {/* Header */}
         <section className="grid place-items-center text-center bg-[#edf6f6] px-6 py-6">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
             <span className="px-3 py-1 text-xs font-semibold rounded bg-teal-700 text-white">
               Scoring IELTS
             </span>
-            <h1 className="text-3xl md:text-4xl font-bold text-teal-700">
+            <h1 className="text-2xl md:text-4xl font-bold text-teal-700">
               Free IELTS Writing Checker 2.0
             </h1>
             <span className="px-2 py-0.5 text-xs font-bold border-2 border-teal-700 text-teal-700 rounded">
@@ -104,15 +104,17 @@ export default function GradePage() {
 
             <button
               onClick={handleSubmit}
-              className="bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg font-semibold"
+              className="w-full md:w-auto bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg font-semibold"
             >
               Submit Essay
             </button>
           </div>
 
           {/* Right: Output grade */}
-          <div className="h-full bg-white rounded-2xl shadow p-4">
-            <EssayResult />
+          <div className="h-full">
+            <div className="bg-white rounded-2xl shadow p-4">
+              <EssayResult />
+            </div>
           </div>
         </div>
 

@@ -5,40 +5,8 @@ import ScoreDetails from "./ScoreDetails";
 import FeedbackTabs from "./FeedbackTabs";
 import MetaFooter from "./MetaFooter";
 
-interface Annotation {
-  start: number;
-  end: number;
-  errorType: string;
-  suggestion: string;
-}
-interface Vocabulary {
-  original: string;
-  alternative: string;
-}
 
-export interface Essay {
-  status: string;
-  prompt: { question: string };
-  grading?: {
-    overallBand: number;
-    taskResponse: number;
-    coherenceCohesion: number;
-    lexicalResource: number;
-    grammaticalRange: number;
-    feedback: string;
-    annotations: Annotation[];
-    vocabulary: Vocabulary[];
-    sentenceTips: string[];
-    structureTips: string;
-    meta: {
-      wordCount: number;
-      grammarErrorCount: number;
-      spellingErrorCount: number;
-    };
-  };
-}
-
-const mockEssay: Essay = {
+const mockEssay = {
   status: "done",
   prompt: { question: "Some people think international" },
   grading: {
@@ -89,7 +57,7 @@ export default function EssayResult({ essay }: { essay?: Essay }) {
     <div className="flex flex-col h-full">
       <div className="space-y-6 flex-1">
         {/* Scores */}
-        <div className="bg-white p-6 rounded-2xl shadow flex items-center gap-10">
+        <div className="bg-white p-6 rounded-2xl shadow flex flex-col md:flex-row items-center gap-6">
           <ScoreCircle overallBand={g.overallBand} />
           <ScoreDetails grading={g} />
         </div>

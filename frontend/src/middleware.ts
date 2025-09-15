@@ -32,6 +32,7 @@ export const config = {
     "/signup",
     "/homepage",
     "/translate",
-    "/grade"
+    "/grade",
+    "/grade-list"
   ],
 };

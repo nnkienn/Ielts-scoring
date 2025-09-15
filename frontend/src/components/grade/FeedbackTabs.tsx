@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Essay } from "./EssayResult";
+import { Essay } from "./types";
 
 export default function FeedbackTabs({ grading }: { grading: NonNullable<Essay["grading"]> }) {
   const [activeTab, setActiveTab] = useState<"vocab" | "sentence" | "structure">("vocab");
@@ -8,7 +8,7 @@ export default function FeedbackTabs({ grading }: { grading: NonNullable<Essay["
   return (
     <div className="bg-white rounded-lg shadow p-4 text-sm">
       {/* Tabs Header */}
-      <div className="flex border-b mb-3">
+      <div className="flex flex-wrap border-b mb-3 gap-2">
         <button
           onClick={() => setActiveTab("vocab")}
           className={`px-3 py-1 font-medium ${
