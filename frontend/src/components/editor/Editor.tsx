@@ -28,8 +28,6 @@ export default function EditorUI({ onChange }: EditorUIProps) {
 
   return (
     <div className="w-full bg-white p-4 rounded-2xl shadow min-h-[500px] flex flex-col">
-
-
       <div className="flex-1 bg-gray-50 rounded-xl shadow-inner min-h-[400px] border border-gray-200 focus-within:border-teal-500">
         <EditorContent
           editor={editor}
@@ -38,12 +36,24 @@ export default function EditorUI({ onChange }: EditorUIProps) {
       </div>
 
       <div className="flex gap-2 text-gray-600 mt-3">
-        <button onClick={() => editor.chain().focus().toggleBold().run()}><Bold size={16} /></button>
-        <button onClick={() => editor.chain().focus().toggleItalic().run()}><Italic size={16} /></button>
-        <button onClick={() => editor.chain().focus().toggleBulletList().run()}><List size={16} /></button>
-        <button onClick={() => editor.chain().focus().undo().run()}><Undo2 size={16} /></button>
-        <button onClick={() => editor.chain().focus().redo().run()}><Redo2 size={16} /></button>
-        <button onClick={() => editor.commands.clearContent()}><Trash2 size={16} /></button>
+        <button onClick={() => editor.chain().focus().toggleBold().run()}>
+          <Bold size={16} />
+        </button>
+        <button onClick={() => editor.chain().focus().toggleItalic().run()}>
+          <Italic size={16} />
+        </button>
+        <button onClick={() => editor.chain().focus().toggleBulletList().run()}>
+          <List size={16} />
+        </button>
+        <button onClick={() => editor.chain().focus().undo().run()}>
+          <Undo2 size={16} />
+        </button>
+        <button onClick={() => editor.chain().focus().redo().run()}>
+          <Redo2 size={16} />
+        </button>
+        <button onClick={() => editor.commands.clearContent()}>
+          <Trash2 size={16} />
+        </button>
       </div>
     </div>
   );

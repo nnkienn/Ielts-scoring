@@ -32,5 +32,6 @@ export const config = {
     "/signup",
     "/homepage",
     "/translate",
+    "/grade"
   ],
 };

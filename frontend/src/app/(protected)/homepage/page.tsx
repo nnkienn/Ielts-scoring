@@ -8,20 +8,7 @@ import Footer from "@/components/layout/Footer";
 import PrivateNavbar from "@/components/layout/PrivateNavbar";
 
 export default function Homepage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const token = searchParams.get("accessToken");
-    if (token) {
-      // ✅ Lưu vào LocalStorage
-      localStorage.setItem("accessToken", token);
-
-      // ✅ Xóa param khỏi URL để tránh lộ trên thanh địa chỉ
-      const newUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, "", newUrl);
-    }
-  }, [searchParams, router]);
+  
 
   const user = useAppSelector((state) => state.auth.user);
 
@@ -64,7 +51,7 @@ export default function Homepage() {
 
           {/* Grade Writing */}
           <Link
-            href="/writting-checker"
+            href="/grade"
             className="flex flex-col items-start p-6 rounded-2xl border hover:shadow-lg transition bg-white"
           >
             <div className="flex items-center gap-3 mb-4">
