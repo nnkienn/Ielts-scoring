@@ -1,6 +1,15 @@
 "use client";
 import React from "react";
-import { Essay } from "./types";
+
+interface Essay {
+  grading?: {
+    taskResponse: number;
+    coherenceCohesion: number;
+    lexicalResource: number;
+    grammaticalRange: number;
+    feedback: string;
+  };
+}
 
 export default function ScoreDetails({ grading }: { grading: NonNullable<Essay["grading"]> }) {
   return (

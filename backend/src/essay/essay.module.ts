@@ -7,9 +7,20 @@ import { RabbitMQService } from 'src/config/rabbitmq.service';
 import { JwtService } from '@nestjs/jwt';
 import { EssayProcessor } from './essay.processor';
 import { RedisService } from 'src/config/redis.service';
+import { EssayGateway } from './essay.gateway';
 
 @Module({
   controllers: [EssayController],
-  providers: [EssayService,PrismaService,UsersService,RabbitMQService , JwtService , EssayProcessor , RedisService],
+  providers: [
+    EssayService,
+    PrismaService,
+    UsersService,
+    RabbitMQService,
+    JwtService,
+    EssayProcessor,
+    RedisService,
+    EssayGateway, // 👈 đã thêm
+  ],
+  exports: [EssayService, EssayGateway], // export để chỗ khác dùng
 })
 export class EssayModule {}

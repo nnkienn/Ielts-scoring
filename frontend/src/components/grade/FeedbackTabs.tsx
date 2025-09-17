@@ -1,6 +1,13 @@
 "use client";
 import React, { useState } from "react";
-import { Essay } from "./types";
+
+interface Essay {
+  grading?: {
+    vocabulary: { original: string; alternative: string }[];
+    sentenceTips: string[];
+    structureTips: string;
+  };
+}
 
 export default function FeedbackTabs({ grading }: { grading: NonNullable<Essay["grading"]> }) {
   const [activeTab, setActiveTab] = useState<"vocab" | "sentence" | "structure">("vocab");

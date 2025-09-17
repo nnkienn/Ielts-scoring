@@ -5,45 +5,39 @@ import ScoreDetails from "./ScoreDetails";
 import FeedbackTabs from "./FeedbackTabs";
 import MetaFooter from "./MetaFooter";
 
-
-const mockEssay = {
-  status: "done",
-  prompt: { question: "Some people think international" },
-  grading: {
-    overallBand: 7,
-    taskResponse: 6.5,
-    coherenceCohesion: 7,
-    lexicalResource: 6.5,
-    grammaticalRange: 6,
-    feedback: "[MOCK] Grading for Task2. Essay length 30 words.",
-    annotations: [],
-    vocabulary: [
-      { original: "big", alternative: "significant" },
-      { original: "good", alternative: "beneficial" },
-    ],
-    sentenceTips: [
-      "Instead of 'This is a big problem', say 'This poses a significant challenge for society.'",
-    ],
-    structureTips: "Expand the introduction with a clear thesis statement.",
+interface Essay {
+  status: string;
+  prompt?: { question: string };
+  grading?: {
+    overallBand: number;
+    taskResponse: number;
+    coherenceCohesion: number;
+    lexicalResource: number;
+    grammaticalRange: number;
+    feedback: string;
+    annotations: any[];
+    vocabulary: { original: string; alternative: string }[];
+    sentenceTips: string[];
+    structureTips: string;
     meta: {
-      wordCount: 30,
-      grammarErrorCount: 2,
-      spellingErrorCount: 1,
-    },
-  },
-};
+      wordCount: number;
+      grammarErrorCount: number;
+      spellingErrorCount: number;
+    };
+  };
+}
 
-export default function EssayResult({ essay }: { essay?: Essay }) {
-  const currentEssay = essay ?? mockEssay;
-
-  if (!currentEssay) {
+export default function EssayResult({ essay }: { essay?: Essay | null }) {
+  if (!essay) {
     return (
       <div className="text-gray-400 italic">
-        Submit an essay to see results here.
+        ✍️ Submit an essay to see results here.
       </div>
     );
   }
-  if (currentEssay.status !== "done" || !currentEssay.grading) {
+
+  // ✅ normalize status về lowercase
+  if (essay.status.toLowerCase() !== "done" || !essay.grading) {
     return (
       <div className="text-gray-500">
         ⏳ Your essay is being graded... Please wait.
@@ -51,7 +45,7 @@ export default function EssayResult({ essay }: { essay?: Essay }) {
     );
   }
 
-  const g = currentEssay.grading;
+  const g = essay.grading;
 
   return (
     <div className="flex flex-col h-full">

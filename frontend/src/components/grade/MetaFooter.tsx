@@ -1,6 +1,6 @@
 "use client";
+import { Essay } from "@/types/essay";
 import React from "react";
-import { Essay } from "./EssayResult";
 
 export default function MetaFooter({ meta }: { meta: NonNullable<Essay["grading"]>["meta"] }) {
   return (
