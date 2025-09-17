@@ -1,15 +1,26 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSelector } from "react-redux";
-import { listEssays, deleteEssay, retryEssay } from "@/store/Slices/essaySlice";
 import PrivateNavbar from "@/components/layout/PrivateNavbar";
 import Footer from "@/components/layout/Footer";
+import ConfirmModal from "@/components/layout/ConfirmModal";
 import { useAppDispatch } from "@/hook/useAppDispatch";
 import { RootState } from "@/store/store";
-import ConfirmModal from "@/components/layout/ConfirmModal";
+import { listEssays, deleteEssay, retryEssay, socketEssayUpdate } from "@/store/Slices/essaySlice";
+import { initSocket } from "@/lib/socket";
 
 // icons
 import { Eye, RotateCcw, Trash2 } from "lucide-react";
+
+type Essay = {
+  id: number;
+  status: "pending" | "done" | "failed";
+  prompt?: { question?: string };
+  grading?: { overallBand?: number };
+  createdAt?: string;
+};
 
 export default function EssayListPage() {
   const dispatch = useAppDispatch();
@@ -21,9 +32,30 @@ export default function EssayListPage() {
     dispatch(listEssays());
   }, [dispatch]);
 
-  const handleDelete = (id: number) => {
-    setDeleteTarget(id);
-  };
+  // --- Realtime: join tất cả essay đang pending ---
+  const pendingIds = useMemo(
+    () => Array.from(new Set((essays as Essay[]).filter(e => e.status === "pending").map(e => e.id))),
+    [essays]
+  );
+
+  useEffect(() => {
+    if (pendingIds.length === 0) return;
+    const socket = initSocket();
+
+    const offs: Array<() => void> = [];
+    pendingIds.forEach(id => {
+      const channel = `essay_update_${id}`;
+      socket.emit("joinEssay", { essayId: id });
+      const handler = (data: any) => dispatch(socketEssayUpdate(data));
+      socket.off(channel);
+      socket.on(channel, handler);
+      offs.push(() => socket.off(channel, handler));
+    });
+
+    return () => offs.forEach(fn => fn());
+  }, [pendingIds, dispatch]);
+
+  const handleDelete = (id: number) => setDeleteTarget(id);
 
   const confirmDelete = () => {
     if (deleteTarget) {
@@ -32,15 +64,31 @@ export default function EssayListPage() {
     }
   };
 
+  const formatDate = (d?: string) =>
+    d ? new Date(d).toLocaleString() : "—";
+
+  const StatusChip = ({ status }: { status: Essay["status"] }) => {
+    const map: Record<Essay["status"], string> = {
+      pending: "bg-amber-50 text-amber-700 ring-amber-200",
+      done: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+      failed: "bg-rose-50 text-rose-700 ring-rose-200",
+    };
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ring-1 ${map[status]}`}>
+        {status}
+      </span>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <PrivateNavbar />
+
       <div className="flex flex-col min-h-screen bg-gray-50 mt-16">
         {/* Header */}
         <section className="grid place-items-center text-center bg-[#edf6f6] px-6 py-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-teal-700">
-            📚 My Essays
-          </h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-teal-700">📚 My Essays</h1>
+          <p className="text-sm text-teal-700">Track grading status in real time</p>
         </section>
 
         {/* Content */}
@@ -57,45 +105,48 @@ export default function EssayListPage() {
                   <thead className="bg-teal-600 text-white">
                     <tr>
                       <th className="px-4 py-3">Prompt</th>
+                      <th className="px-4 py-3">Created</th>
                       <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3">Band</th>
                       <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {essays.map((e) => (
+                    {(essays as Essay[]).map((e) => (
                       <tr key={e.id} className="border-t hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          {e.prompt?.question || "—"}
+                        <td className="px-4 py-3 max-w-[520px]">
+                          <div className="line-clamp-2">{e.prompt?.question || "—"}</div>
                         </td>
-                        <td className="px-4 py-3 capitalize">{e.status}</td>
-                        <td className="px-4 py-3">
-                          {e.grading?.overallBand ?? "—"}
+                        <td className="px-4 py-3">{formatDate(e.createdAt)}</td>
+                        <td className="px-4 py-3 capitalize">
+                          <StatusChip status={e.status} />
                         </td>
+                        <td className="px-4 py-3">{e.grading?.overallBand ?? "—"}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex justify-end gap-2">
-                            <button
-                              className="min-w-[80px] h-8 px-3 flex items-center justify-center gap-1 
-                                         text-xs font-medium rounded text-white bg-blue-500 hover:bg-blue-600"
+                            <Link
+                              href={`/grade/${e.id}`}
+                              className="min-w-[80px] h-8 px-3 inline-flex items-center justify-center gap-1 
+                                         text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700"
                             >
                               <Eye size={14} /> View
-                            </button>
+                            </Link>
 
-                            {e.status !== "PENDING" && (
+                            {e.status !== "pending" && (
                               <button
                                 onClick={() => dispatch(retryEssay(e.id))}
-                                className="min-w-[80px] h-8 px-3 flex items-center justify-center gap-1 
-                                           text-xs font-medium rounded text-white bg-yellow-500 hover:bg-yellow-600"
+                                className="min-w-[80px] h-8 px-3 inline-flex items-center justify-center gap-1 
+                                           text-xs font-medium rounded text-white bg-amber-500 hover:bg-amber-600"
                               >
                                 <RotateCcw size={14} /> Retry
                               </button>
                             )}
 
-                            {e.status === "PENDING" && (
+                            {e.status === "pending" && (
                               <button
                                 onClick={() => handleDelete(e.id)}
-                                className="min-w-[80px] h-8 px-3 flex items-center justify-center gap-1 
-                                           text-xs font-medium rounded text-white bg-red-500 hover:bg-red-600"
+                                className="min-w-[80px] h-8 px-3 inline-flex items-center justify-center gap-1 
+                                           text-xs font-medium rounded text-white bg-rose-500 hover:bg-rose-600"
                               >
                                 <Trash2 size={14} /> Delete
                               </button>
@@ -110,44 +161,45 @@ export default function EssayListPage() {
 
               {/* Mobile cards */}
               <div className="md:hidden space-y-4">
-                {essays.map((e) => (
-                  <div
-                    key={e.id}
-                    className="bg-white rounded-xl shadow p-4 space-y-2"
-                  >
+                {(essays as Essay[]).map((e) => (
+                  <div key={e.id} className="bg-white rounded-xl shadow p-4 space-y-2">
                     <p className="text-sm font-medium text-gray-800">
                       <span className="font-semibold">Prompt:</span>{" "}
-                      {e.prompt?.question || "—"}
+                      <span className="text-gray-700">{e.prompt?.question || "—"}</span>
                     </p>
                     <p className="text-sm text-gray-600">
-                      <span className="font-semibold">Status:</span>{" "}
-                      {e.status}
+                      <span className="font-semibold">Created:</span> {formatDate(e.createdAt)}
+                    </p>
+                    <p className="text-sm text-gray-600 flex items-center gap-2">
+                      <span className="font-semibold">Status:</span> <StatusChip status={e.status} />
                     </p>
                     <p className="text-sm text-gray-600">
-                      <span className="font-semibold">Band:</span>{" "}
-                      {e.grading?.overallBand ?? "—"}
+                      <span className="font-semibold">Band:</span> {e.grading?.overallBand ?? "—"}
                     </p>
                     <div className="flex gap-2 pt-2">
-                      <button className="flex-1 h-9 flex items-center justify-center gap-1 
-                                         text-sm font-medium rounded text-white bg-blue-500 hover:bg-blue-600">
+                      <Link
+                        href={`/grade/${e.id}`}
+                        className="flex-1 h-9 inline-flex items-center justify-center gap-1 
+                                   text-sm font-medium rounded text-white bg-blue-600 hover:bg-blue-700"
+                      >
                         <Eye size={16} /> View
-                      </button>
+                      </Link>
 
-                      {e.status !== "PENDING" && (
+                      {e.status !== "pending" && (
                         <button
                           onClick={() => dispatch(retryEssay(e.id))}
-                          className="flex-1 h-9 flex items-center justify-center gap-1 
-                                     text-sm font-medium rounded text-white bg-yellow-500 hover:bg-yellow-600"
+                          className="flex-1 h-9 inline-flex items-center justify-center gap-1 
+                                     text-sm font-medium rounded text-white bg-amber-500 hover:bg-amber-600"
                         >
                           <RotateCcw size={16} /> Retry
                         </button>
                       )}
 
-                      {e.status === "PENDING" && (
+                      {e.status === "pending" && (
                         <button
                           onClick={() => handleDelete(e.id)}
-                          className="flex-1 h-9 flex items-center justify-center gap-1 
-                                     text-sm font-medium rounded text-white bg-red-500 hover:bg-red-600"
+                          className="flex-1 h-9 inline-flex items-center justify-center gap-1 
+                                     text-sm font-medium rounded text-white bg-rose-500 hover:bg-rose-600"
                         >
                           <Trash2 size={16} /> Delete
                         </button>
