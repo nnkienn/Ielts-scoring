@@ -16,6 +16,7 @@ import { TranslateModule } from './translate/translate.module';
 import { RabbitMQService } from './config/rabbitmq.service';
 import { EssayModule } from './essay/essay.module';
 import { EssayProcessor } from './essay/essay.processor';
+import { PaymentModule } from './payment/payment.module';
 
 
 @Module({
@@ -28,6 +29,7 @@ import { EssayProcessor } from './essay/essay.processor';
     AdminModule,
     TranslateModule,
     EssayModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [
