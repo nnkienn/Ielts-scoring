@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { EssayProcessor } from './essay.processor';
 import { RedisService } from 'src/config/redis.service';
 import { EssayGateway } from './essay.gateway';
+import { CreditService } from 'src/credit/credit.service';
 
 @Module({
   controllers: [EssayController],
@@ -19,8 +20,9 @@ import { EssayGateway } from './essay.gateway';
     JwtService,
     EssayProcessor,
     RedisService,
-    EssayGateway, // 👈 đã thêm
+    EssayGateway,
+    CreditService
   ],
   exports: [EssayService, EssayGateway], // export để chỗ khác dùng
 })
-export class EssayModule {}
+export class EssayModule { }

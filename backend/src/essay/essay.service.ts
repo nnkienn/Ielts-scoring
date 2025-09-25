@@ -4,6 +4,7 @@ import { PrismaService } from 'prisma/prisma.service';
 import { RabbitMQService } from 'src/config/rabbitmq.service';
 import { EssayStatus } from '@prisma/client';
 import { RedisService } from 'src/config/redis.service';
+import { CreditService } from 'src/credit/credit.service';
 
 @Injectable()
 export class EssayService {
@@ -12,6 +13,7 @@ export class EssayService {
     private prismaService: PrismaService,
     private rabbitMQService: RabbitMQService,
     private redisService: RedisService,
+    private creditService: CreditService,
   ) {}
 
   private async getOrCreatePrompt(data: { promptId?: number; question?: string; taskType?: string }) {
@@ -45,7 +47,7 @@ export class EssayService {
     const redis = this.redisService.getClient();
 
     // 1) check credits
-    const hasCredits = await this.userService.hasCredits(userId);
+    const hasCredits = await this.creditService.hasCredits(userId);
     if (!hasCredits) throw new Error('Insufficient credits');
 
     // 2) hash text -> cache key
@@ -70,7 +72,7 @@ export class EssayService {
     }
 
     // 4) decrement credits
-    await this.userService.decrementCredits(userId);
+    await this.creditService.decrementCredits(userId);
 
     // 5) check/create prompt
     const prompt = await this.getOrCreatePrompt(data);
