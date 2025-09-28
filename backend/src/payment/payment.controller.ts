@@ -35,6 +35,13 @@ export class PaymentController {
     return this.paymentService.createPlan(body);
   }
 
+  @UseGuards(JwtGuard)
+  @Get('history')
+  async getUserPayments(@GetUser('sub') userId: number) {
+    return this.paymentService.getUserpayment(userId);
+  }
+
+
   @Get('plans')
   async getAllPlans() {
     return this.paymentService.getAllPlans();

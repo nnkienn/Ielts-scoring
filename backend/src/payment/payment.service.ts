@@ -60,6 +60,16 @@ export class PaymentService {
     return this.stripe.checkout.sessions.retrieve(sessionId);
   }
 
+  async getUserpayment(userId : number) {
+    return this.prisma.payment.findMany({
+      where :{userId},
+      orderBy : {createdAt :'desc'},
+      include:{
+        plan : true
+      }
+    })
+  }
+
   // ✅ Xử lý webhook
   async handleWebhook(req: Request, res: Response) {
     const sig = req.headers['stripe-signature'] as string;

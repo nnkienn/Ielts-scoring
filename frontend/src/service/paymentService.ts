@@ -11,4 +11,7 @@ export const paymentService = {
   // ✅ Verify session sau khi checkout thành công
   verifySession: (sessionId: string) =>
     api.get(`/payments/session?sessionId=${sessionId}`),
+
+  // ✅ Lịch sử giao dịch
+  getHistory: () => api.get("/payments/history"),
 };
