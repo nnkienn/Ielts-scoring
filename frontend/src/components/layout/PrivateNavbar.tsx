@@ -7,16 +7,28 @@ import Link from "next/link";
 import { useState } from "react";
 import { FaUserCircle } from "react-icons/fa";
 import { Crown } from "lucide-react";
+import { usePathname } from "next/navigation";
 
-export default function Navbar() {
+const pageTitles: Record<string, string> = {
+  "/grade": "Grade Writing",
+  "/grade-list": "Grade History",
+  "/payment-history": "Payment History",
+  "/translate": "Translate Tool",
+  // có thể thêm route khác tuỳ bạn
+};
+
+export default function PrivateNavbar() {
   const [open, setOpen] = useState(false);
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const pathname = usePathname();
 
   const handleLogout = () => {
     dispatch(logout());
-    window.location.href = "/signin"; // redirect về login
+    window.location.href = "/signin";
   };
+
+  const pageTitle = pageTitles[pathname] || "";
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 shadow bg-white h-16 flex items-center">
@@ -37,15 +49,19 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Credits & Upgrade */}
+        {/* Title (ẩn ở homepage) */}
+        {pageTitle && (
+          <div className="hidden md:block text-lg font-semibold text-slate-800 tracking-tight">
+            {pageTitle}
+          </div>
+        )}
+
+        {/* Credits & Upgrade + User menu */}
         <div className="flex items-center gap-4">
-          {/* Hiển thị credits */}
-          {/* Hiển thị credits */}
           <span className="text-sm font-medium text-gray-700">
             Free: {user?.freeCredits ?? 0} LC
           </span>
 
-          {/* Nếu freeCredits = 0 thì hiện nút Upgrade */}
           {(user?.freeCredits === 0) && (
             <Link
               href="/payment"
@@ -56,11 +72,6 @@ export default function Navbar() {
             </Link>
           )}
 
-
-
-
-
-          {/* User Menu */}
           <div className="relative">
             <button
               onClick={() => setOpen(!open)}
