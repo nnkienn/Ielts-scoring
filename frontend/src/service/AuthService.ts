@@ -6,15 +6,30 @@ const api = axios.create({
 });
 
 // ✅ Kiểu dữ liệu trả về từ backend
-export interface AuthResponse {
-  user: {
-    id: number;
-    email: string;
-    name: string;
-    role?: string;
-  };
-  accessToken: string; 
+// ✅ Kiểu dữ liệu trả về từ backend
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  roleId?: number;
+  role?: { id: number; name: string };
+
+  // 👇 thêm các field backend trả về
+  freeCredits: number;
+  paidCredits: number;
+  avatar?: string | null;
+  googleId?: string | null;
+  facebookId?: string | null;
+  stripeId?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
+
+export interface AuthResponse {
+  user: User;
+  accessToken: string;
+}
+
 
 // AuthService: login, register, refresh
 export const AuthService = {
