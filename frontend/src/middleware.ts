@@ -33,6 +33,7 @@ export const config = {
     "/homepage",
     "/translate",
     "/grade",
-    "/grade-list"
+    "/grade-list",
+    "/payment-history"
   ],
 };

@@ -40,34 +40,24 @@ export default function Navbar() {
         {/* Credits & Upgrade */}
         <div className="flex items-center gap-4">
           {/* Hiển thị credits */}
-{/* Hiển thị credits */}
-<span className="text-sm font-medium text-gray-700">
-  Free: {user?.freeCredits ?? 0} LC
-</span>
+          {/* Hiển thị credits */}
+          <span className="text-sm font-medium text-gray-700">
+            Free: {user?.freeCredits ?? 0} LC
+          </span>
 
-{/* Nếu freeCredits = 0 thì hiện nút Upgrade */}
-{(user?.freeCredits === 0) && (
-  <Link
-    href="/payment"
-    className="flex items-center gap-1 bg-green-600 text-white text-sm font-medium px-3 py-1.5 rounded-md hover:bg-green-700 transition"
-  >
-    <Crown className="w-4 h-4" />
-    Nâng Cấp Pro
-  </Link>
-)}
+          {/* Nếu freeCredits = 0 thì hiện nút Upgrade */}
+          {(user?.freeCredits === 0) && (
+            <Link
+              href="/payment"
+              className="flex items-center gap-1 bg-green-600 text-white text-sm font-medium px-3 py-1.5 rounded-md hover:bg-green-700 transition"
+            >
+              <Crown className="w-4 h-4" />
+              Nâng Cấp Pro
+            </Link>
+          )}
 
 
 
-          {/* Nếu chưa nạp thì hiện nút Upgrade */}
-         {(user?.freeCredits === 0) && (
-  <Link
-    href="/payment"
-    className="flex items-center gap-1 bg-green-600 text-white text-sm font-medium px-3 py-1.5 rounded-md hover:bg-green-700 transition"
-  >
-    <Crown className="w-4 h-4" />
-    Nâng Cấp Pro
-  </Link>
-)}
 
 
           {/* User Menu */}

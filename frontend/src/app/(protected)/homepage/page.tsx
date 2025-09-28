@@ -5,7 +5,7 @@ import PrivateNavbar from "@/components/layout/PrivateNavbar";
 import Footer from "@/components/layout/Footer";
 import Testimonials from "@/components/layout/Testimonials";
 import { useAppSelector } from "@/hook/useAppSelector";
-import { Globe2, PencilLine, History } from "lucide-react";
+import { Globe2, PencilLine, History, CreditCard } from "lucide-react";
 
 export default function Homepage() {
   const user = useAppSelector((state) => state.auth.user);
@@ -32,6 +32,13 @@ export default function Homepage() {
       Icon: History,
       badgeClass: "bg-amber-50 text-amber-600 ring-amber-200",
     },
+    {
+      href: "/payment-history",
+      title: "Payment History",
+      desc: "View your past payments and subscription history.",
+      Icon: CreditCard,
+      badgeClass: "bg-purple-50 text-purple-600 ring-purple-200",
+    },
   ];
 
   return (
@@ -51,9 +58,9 @@ export default function Homepage() {
         </p>
       </section>
 
-      {/* Features: 1 hàng ở desktop (md:3 cols) */}
+      {/* Features */}
       <section className="py-12 px-6 bg-gray-50">
-        <div className="mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl">
+        <div className="mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
           {features.map(({ href, title, desc, Icon, badgeClass }) => (
             <Link
               key={href}
