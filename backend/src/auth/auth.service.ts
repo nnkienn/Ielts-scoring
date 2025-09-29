@@ -9,6 +9,7 @@ import { LoginDto } from './dto/login-auth.dto';
 import * as bcrypt from 'bcrypt';
 import { GoogleProfile } from './strategies/google.strategy';
 import { FacebookProfile } from './strategies/facebook.strategy';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -121,6 +122,30 @@ export class AuthService {
       backendTokens: tokens,
     };
   }
+
+ async changePassword(userId: number, dto: ChangePasswordDto) {
+  // 1. Tìm user theo id
+  const user = await this.prismaService.user.findUnique({ where: { id: userId } });
+  if (!user) throw new UnauthorizedException('User not found');
+
+  // 2. Check password cũ
+  const isMatch = await bcrypt.compare(dto.oldPassword, user.password);
+  if (!isMatch) {
+    throw new UnauthorizedException('Old password is incorrect');
+  }
+
+  // 3. Hash mật khẩu mới
+  const hashed = await bcrypt.hash(dto.newPassword, 10);
+
+  // 4. Cập nhật DB
+  await this.prismaService.user.update({
+    where: { id: userId },
+    data: { password: hashed },
+  });
+
+  return { message: 'Password updated successfully' };
+}
+
 
   async socialLoginGoogle(profile: GoogleProfile): Promise<{
     user: UserWithRole;
