@@ -6,7 +6,7 @@ import { logout } from "@/store/Slices/authSlice";
 import Link from "next/link";
 import { useState } from "react";
 import { FaUserCircle } from "react-icons/fa";
-import { Crown } from "lucide-react";
+import { Crown, Settings, HelpCircle, CreditCard, LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const pageTitles: Record<string, string> = {
@@ -14,7 +14,7 @@ const pageTitles: Record<string, string> = {
   "/grade-list": "Grade History",
   "/payment-history": "Payment History",
   "/translate": "Translate Tool",
-  // có thể thêm route khác tuỳ bạn
+  "/setting": "Settings",
 };
 
 export default function PrivateNavbar() {
@@ -62,7 +62,7 @@ export default function PrivateNavbar() {
             Free: {user?.freeCredits ?? 0} LC
           </span>
 
-          {(user?.freeCredits === 0) && (
+          {user?.freeCredits === 0 && (
             <Link
               href="/payment"
               className="flex items-center gap-1 bg-green-600 text-white text-sm font-medium px-3 py-1.5 rounded-md hover:bg-green-700 transition"
@@ -83,21 +83,35 @@ export default function PrivateNavbar() {
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border text-sm z-50">
                 <div className="px-4 py-2 border-b">
                   <ul className="py-2">
-                    <li className="px-4 py-2 hover:bg-gray-50 text-gray-700 cursor-pointer">
-                      Account details
+                    <li>
+                      <Link
+                        href="/setting"
+                        className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 cursor-pointer"
+                      >
+                        <Settings size={16} /> Settings
+                      </Link>
                     </li>
-                   
-                    <li className="px-4 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">
-                      Help Center
+                    <li>
+                      <Link
+                        href="/help"
+                        className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 cursor-pointer"
+                      >
+                        <HelpCircle size={16} /> Help Center
+                      </Link>
                     </li>
-                    <li className="px-4 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">
-                      Contact us
+                    <li>
+                      <Link
+                        href="/payment-history"
+                        className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-gray-700 cursor-pointer"
+                      >
+                        <CreditCard size={16} /> Payment History
+                      </Link>
                     </li>
                     <li
                       onClick={handleLogout}
-                      className="px-4 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer"
                     >
-                      Logout
+                      <LogOut size={16} /> Logout
                     </li>
                   </ul>
                 </div>
