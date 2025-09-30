@@ -11,6 +11,9 @@ import PrivateNavbar from "@/components/layout/PrivateNavbar";
 import EssayResult from "@/components/grade/EssayResult";
 import { initSocket } from "@/lib/socket";
 
+// Heroicons
+import { ChevronUpDownIcon, CheckIcon } from "@heroicons/react/24/solid";
+
 export default function GradePage() {
   const [text, setText] = useState("");
   const [promptId, setPromptId] = useState<number | "">("");
@@ -34,50 +37,35 @@ export default function GradePage() {
       payload.taskType = taskType;
     }
 
-    console.log("🚀 [FE] Submitting essay:", payload);
-
     try {
       const res = await dispatch(submitEssay(payload)).unwrap();
-      console.log("✅ [FE] Submit response:", res);
-
       const id = res.id ?? res.essayId;
       if (id) {
         const socket = initSocket();
         const channel = `essay_update_${id}`;
 
-        // 👈 join room ngay sau submit
         socket.emit("joinEssay", { essayId: id });
-
         socket.off(channel);
-        socket.on(channel, (data) => {
-          console.log("📥 [FE] Essay update received:", data);
-          dispatch(socketEssayUpdate(data));
-        });
+        socket.on(channel, (data) => dispatch(socketEssayUpdate(data)));
       }
     } catch (err) {
-      console.error("❌ [FE] Submit essay error:", err);
+      console.error("❌ Submit essay error:", err);
     }
   };
 
-  // 👂 Khi reload trang mà đã có currentEssay -> re-subscribe + join
+  // 👂 Khi reload -> re-subscribe
   useEffect(() => {
     const socket = initSocket();
     const id = currentEssay?.id ?? currentEssay?.essayId;
 
     if (id) {
       const channel = `essay_update_${id}`;
-      console.log("👂 [FE] Re-subscribing after reload:", channel);
-
-      socket.emit("joinEssay", { essayId: id }); // 👈 join lại
-
+      socket.emit("joinEssay", { essayId: id });
       socket.off(channel);
-      socket.on(channel, (data) => {
-        console.log("📩 [FE] Essay update realtime:", data);
-        dispatch(socketEssayUpdate(data));
-      });
+      socket.on(channel, (data) => dispatch(socketEssayUpdate(data)));
 
+      // ✅ cleanup chuẩn
       return () => {
-        console.log("🧹 [FE] Cleanup socket listener:", channel);
         socket.off(channel);
       };
     }
@@ -88,6 +76,7 @@ export default function GradePage() {
       <PrivateNavbar />
 
       <div className="flex flex-col min-h-screen bg-gray-50 mt-16">
+        {/* Header */}
         <section className="grid place-items-center text-center bg-[#edf6f6] px-6 py-6">
           <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
             <span className="px-3 py-1 text-xs font-semibold rounded bg-teal-700 text-white">
@@ -107,58 +96,95 @@ export default function GradePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 items-start">
           <div className="flex flex-col gap-4 h-full">
-            <div className="bg-white rounded-2xl shadow p-4">
-              <h2 className="text-lg font-bold text-teal-700 mb-2">Choose Prompt</h2>
+            {/* 🔥 Modern Choose Prompt */}
+            <div className="bg-white rounded-2xl shadow p-6 border border-gray-100">
+              <h2 className="text-lg font-bold text-teal-700 mb-4 flex items-center gap-2">
+                ✍️ Choose Prompt
+              </h2>
 
-              <select
-                className="w-full border p-2 rounded mb-2"
-                value={promptId}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setPromptId(val ? Number(val) : "");
-                  setQuestion("");
-                }}
-              >
-                <option value="">-- Select existing prompt --</option>
-                {prompts.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.question}
+              {/* Existing prompt */}
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Select existing prompt
+                </label>
+                <select
+                  className="w-full border-gray-300 text-gray-800 font-medium 
+                            focus:border-teal-500 focus:ring-2 focus:ring-teal-500 
+                            rounded-lg p-2.5 shadow-sm transition cursor-pointer"
+                  value={promptId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPromptId(val ? Number(val) : "");
+                    setQuestion("");
+                  }}
+                >
+                  <option value="" className="text-gray-500">
+                    -- Select prompt --
                   </option>
-                ))}
-              </select>
+                  {prompts.map((p) => (
+                    <option
+                      key={p.id}
+                      value={p.id}
+                      className="hover:bg-teal-100 cursor-pointer"
+                    >
+                      {p.question}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
+              {/* New prompt input */}
               {!promptId && (
                 <>
-                  <input
-                    type="text"
-                    placeholder="Or enter a new prompt..."
-                    className="w-full border p-2 rounded mb-2"
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                  />
-                  <select
-                    className="w-full border p-2 rounded"
-                    value={taskType}
-                    onChange={(e) => setTaskType(e.target.value)}
-                  >
-                    <option value="Task1">Task 1</option>
-                    <option value="Task2">Task 2</option>
-                  </select>
+                  <div className="mb-4">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      Or enter a new prompt
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Write your own question..."
+                      className="w-full border-gray-300 text-gray-800 font-medium 
+                                placeholder:text-gray-400 
+                                focus:border-teal-500 focus:ring-2 focus:ring-teal-500 
+                                rounded-lg p-2.5 shadow-sm"
+                      value={question}
+                      onChange={(e) => setQuestion(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      Task type
+                    </label>
+                    <select
+                      className="w-full border-gray-300 text-gray-800 font-medium 
+                                focus:border-teal-500 focus:ring-2 focus:ring-teal-500 
+                                rounded-lg p-2.5 shadow-sm cursor-pointer"
+                      value={taskType}
+                      onChange={(e) => setTaskType(e.target.value)}
+                    >
+                      <option value="Task1">Task 1 (Graphs, Charts)</option>
+                      <option value="Task2">Task 2 (Essay, Opinion)</option>
+                    </select>
+                  </div>
                 </>
               )}
             </div>
 
+            {/* Editor */}
             <EditorUI onChange={setText} />
 
+            {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              className="w-full md:w-auto bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg font-semibold"
+              className="w-full md:w-auto bg-teal-600 hover:bg-teal-700 text-white py-2 px-6 rounded-lg font-semibold shadow-md transition"
               disabled={loading}
             >
               {loading ? "Submitting..." : "Submit Essay"}
             </button>
           </div>
 
+          {/* Result */}
           <div className="h-full">
             <div className="bg-white rounded-2xl shadow p-4">
               <EssayResult essay={currentEssay} />
