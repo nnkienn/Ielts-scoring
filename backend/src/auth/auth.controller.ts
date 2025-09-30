@@ -16,7 +16,7 @@ import { RegisterDto } from './dto/register-auth.dto';
 import { LoginDto } from './dto/login-auth.dto';
 import { Public } from 'src/common/guard/public.decorator';
 import { AuthGuard } from '@nestjs/passport';
-import { ChangePasswordDto } from './dto/change-password.dto';
+import { ChangePasswordDto } from '../users/dto/change-password.dto';
 import { JwtGuard } from 'src/common/decorators/jwt.guard';
 import { GetUser } from 'src/common/guard/get-user.decorator';
 
@@ -54,14 +54,6 @@ export class AuthController {
   async logout(@Res() res: Response) {
     res.clearCookie('rt', { path: '/' });
     return res.json({ ok: true });
-  }
-  @UseGuards(JwtGuard)
-  @Post('change-password')
-  async changePassword(
-    @GetUser('sub') userId: number,
-    @Body() dto: ChangePasswordDto,
-  ) {
-    return this.auth.changePassword(userId, dto);
   }
 
   // ===== Google OAuth =====

@@ -82,18 +82,11 @@ export default function PrivateNavbar() {
             {open && (
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border text-sm z-50">
                 <div className="px-4 py-2 border-b">
-                  <p className="font-medium text-gray-700">{user?.email}</p>
                   <ul className="py-2">
                     <li className="px-4 py-2 hover:bg-gray-50 text-gray-700 cursor-pointer">
                       Account details
                     </li>
-                    <li className="px-4 py-2 hover:bg-gray-50 text-gray-700 cursor-pointer flex justify-between items-center">
-                      Dark mode
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" />
-                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-green-600"></div>
-                      </label>
-                    </li>
+                   
                     <li className="px-4 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">
                       Help Center
                     </li>

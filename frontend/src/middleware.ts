@@ -34,6 +34,7 @@ export const config = {
     "/translate",
     "/grade",
     "/grade-list",
-    "/payment-history"
+    "/payment-history",
+    "/setting"
   ],
 };
