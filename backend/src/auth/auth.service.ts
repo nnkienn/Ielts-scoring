@@ -9,7 +9,6 @@ import { LoginDto } from './dto/login-auth.dto';
 import * as bcrypt from 'bcrypt';
 import { GoogleProfile } from './strategies/google.strategy';
 import { FacebookProfile } from './strategies/facebook.strategy';
-import { ChangePasswordDto } from '../users/dto/change-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +19,7 @@ export class AuthService {
     private userService: UsersService
   ) {}
 
+  /** Set refreshToken (rt) vào cookie HTTP-only */
   public setRefreshCookie(res: Response, refreshToken: string) {
     const isProd =
       (this.configservice.get<string>('NODE_ENV') ||
@@ -34,6 +34,7 @@ export class AuthService {
     });
   }
 
+  /** Phát hành access/refresh token */
   private async issueTokens(user: UserWithRole) {
     const payload = {
       sub: user.id,
@@ -57,79 +58,68 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  /** Kiểm tra user/password */
   async validateUser(loginDto: LoginDto): Promise<UserWithRole> {
     const user = await this.userService.findByEmail(loginDto.email);
     if (!user) throw new UnauthorizedException('Email not found');
-    const isPasswordMatch = await bcrypt.compare(
-      loginDto.password,
-      user.password,
-    );
-    if (!isPasswordMatch) {
-      throw new UnauthorizedException('Password invalid');
-    }
+    const ok = await bcrypt.compare(loginDto.password, user.password);
+    if (!ok) throw new UnauthorizedException('Password invalid');
     return user as UserWithRole;
   }
 
+  /** Đổi refreshToken -> accessToken mới */
   async refreshToken(refreshToken: string) {
     try {
-      const payload = await this.jwtService.verifyAsync<{
-        sub: number;
-        email: string;
-      }>(refreshToken, {
-        secret: this.configservice.get<string>('JWT_REFRESH_SECRET'),
-      });
+      const payload = await this.jwtService.verifyAsync<{ sub: number; email: string }>(
+        refreshToken,
+        { secret: this.configservice.get<string>('JWT_REFRESH_SECRET') },
+      );
+
       const user = await this.prismaService.user.findUnique({
         where: { id: payload.sub },
         include: { role: true },
       });
       if (!user) throw new UnauthorizedException('User not found');
+
       const { accessToken } = await this.issueTokens(user as UserWithRole);
       return { accessToken };
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('invalid refresh token');
     }
   }
 
+  /** Đăng ký: trả user + tokens (để controller set cookie & trả accessToken) */
   async register(registerDto: RegisterDto) {
     const { email, password, name, roleId } = registerDto;
-    const existingEmail = await this.prismaService.user.findUnique({
-      where: { email },
-    });
-    if (existingEmail) throw new UnauthorizedException('Email already exists');
 
-    const hashPassword = await bcrypt.hash(password, 10);
+    const existed = await this.prismaService.user.findUnique({ where: { email } });
+    if (existed) throw new UnauthorizedException('Email already exists');
+
+    const hash = await bcrypt.hash(password, 10);
 
     const user = await this.prismaService.user.create({
-      data: { email, password: hashPassword, name, roleId },
+      data: { email, password: hash, name, roleId },
       include: { role: true },
     });
+
     const tokens = await this.issueTokens(user as UserWithRole);
     const { password: _pw, ...userWithoutPassword } = user;
 
-    return {
-      user: userWithoutPassword,
-      backendTokens: tokens,
-    };
+    return { user: userWithoutPassword, tokens };
   }
 
+  /** Đăng nhập: trả user + tokens (để controller set cookie & trả accessToken) */
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto);
     const tokens = await this.issueTokens(user);
     const { password: _pw, ...userWithoutPassword } = user;
-
-    return {
-      user: userWithoutPassword,
-      backendTokens: tokens,
-    };
+    return { user: userWithoutPassword, tokens };
   }
 
-
-  async socialLoginGoogle(profile: GoogleProfile): Promise<{
-    user: UserWithRole;
-    tokens: { accessToken: string; refreshToken: string };
-  }> {
+  /** Google OAuth */
+  async socialLoginGoogle(profile: GoogleProfile) {
     let user = await this.prismaService.user.findFirst({
-      where: { googleId: profile.providerId }, // ✅ sửa đúng tên field
+      where: { googleId: profile.providerId },
       include: { role: true },
     });
 
@@ -138,20 +128,13 @@ export class AuthService {
       if (exist) {
         user = await this.prismaService.user.update({
           where: { id: exist.id },
-          data: {
-            googleId: profile.providerId,
-            avatar: profile.avatar ?? exist.avatar,
-          },
+          data: { googleId: profile.providerId, avatar: profile.avatar ?? exist.avatar },
           include: { role: true },
         });
       }
       if (!user) {
-        const fallbackEmail =
-          profile.email ?? `u_google_${profile.providerId}@example.local`;
-        const dummyPass = await bcrypt.hash(
-          'oauth_' + profile.providerId,
-          10,
-        );
+        const fallbackEmail = profile.email ?? `u_google_${profile.providerId}@example.local`;
+        const dummyPass = await bcrypt.hash('oauth_' + profile.providerId, 10);
 
         user = await this.prismaService.user.create({
           data: {
@@ -160,7 +143,7 @@ export class AuthService {
             name: profile.name,
             avatar: profile.avatar,
             roleId: 2,
-            googleId: profile.providerId, // ✅ sửa đúng tên field
+            googleId: profile.providerId,
           },
           include: { role: true },
         });
@@ -173,10 +156,8 @@ export class AuthService {
     return { user, tokens };
   }
 
-  async socialLoginFacebook(profile: FacebookProfile): Promise<{
-    user: UserWithRole;
-    tokens: { accessToken: string; refreshToken: string };
-  }> {
+  /** Facebook OAuth */
+  async socialLoginFacebook(profile: FacebookProfile) {
     let user = await this.prismaService.user.findFirst({
       where: { facebookId: profile.providerId },
       include: { role: true },
@@ -187,20 +168,13 @@ export class AuthService {
       if (exist) {
         user = await this.prismaService.user.update({
           where: { id: exist.id },
-          data: {
-            facebookId: profile.providerId,
-            avatar: profile.avatar ?? exist.avatar,
-          },
+          data: { facebookId: profile.providerId, avatar: profile.avatar ?? exist.avatar },
           include: { role: true },
         });
       }
       if (!user) {
-        const fallbackEmail =
-          profile.email ?? `u_fb_${profile.providerId}@example.local`;
-        const dummyPass = await bcrypt.hash(
-          'oauth_' + profile.providerId,
-          10,
-        );
+        const fallbackEmail = profile.email ?? `u_fb_${profile.providerId}@example.local`;
+        const dummyPass = await bcrypt.hash('oauth_' + profile.providerId, 10);
 
         user = await this.prismaService.user.create({
           data: {

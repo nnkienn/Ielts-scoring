@@ -1,4 +1,3 @@
-// src/services/api.ts
 import axios, { AxiosRequestConfig } from "axios";
 import { AuthService } from "./AuthService";
 
@@ -6,12 +5,15 @@ interface CustomAxiosRequestConfig extends AxiosRequestConfig {
   _retry?: boolean;
 }
 
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000",
-  withCredentials: true, // gửi cookie refresh (HTTP-only) khi gọi /auth/refresh
+  baseURL: API_BASE,
+  withCredentials: true, // cần để gửi cookie "rt" (httpOnly) cho /auth/refresh
 });
 
-// ---------------- Request: đính accessToken ----------------
+// ---------------- Request: gắn Authorization ----------------
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const raw = localStorage.getItem("auth");
@@ -19,10 +21,12 @@ api.interceptors.request.use((config) => {
       try {
         const { accessToken } = JSON.parse(raw);
         if (accessToken) {
-          config.headers = config.headers || {};
+          config.headers = config.headers ?? {};
           (config.headers as any).Authorization = `Bearer ${accessToken}`;
         }
-      } catch {}
+      } catch {
+        // ignore JSON parse error
+      }
     }
   }
   return config;
@@ -37,28 +41,31 @@ function flushQueue(newToken: string | null) {
   waitQueue = [];
 }
 
+function isAuthUrl(url = "") {
+  return (
+    url.includes("/auth/refresh") ||
+    url.includes("/auth/login") ||
+    url.includes("/auth/register") ||
+    url.includes("/auth/logout")
+  );
+}
+
 api.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   async (error) => {
     const status = error?.response?.status as number | undefined;
     const original = (error?.config || {}) as CustomAxiosRequestConfig;
 
-    // Nếu không có config (network error) -> trả về luôn
     if (!original) return Promise.reject(error);
 
-    // Tránh self-refresh loop
     const url = (original.url || "").toString();
-    const isRefreshCall = url.includes("/auth/refresh");
 
-    // 402: để UI tự xử lý paywall, KHÔNG redirect ở đây
-    if (status === 402) {
-      return Promise.reject(error);
-    }
+    // để UI tự xử lý
+    if (status === 402) return Promise.reject(error);
 
-    // 401: thử refresh 1 lần (trừ khi chính là refresh call)
-    if (status === 401 && !original._retry && !isRefreshCall) {
+    // 401 -> thử refresh 1 lần (không áp dụng cho các endpoint auth)
+    if (status === 401 && !original._retry && !isAuthUrl(url)) {
       if (isRefreshing) {
-        // Có refresh đang diễn ra: chờ xong rồi retry
         return new Promise((resolve, reject) => {
           waitQueue.push((token) => {
             if (!token) return reject(error);
@@ -73,8 +80,7 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Gọi service refresh (phải gửi cookie RT)
-        const res = await AuthService.refresh(); // { accessToken }
+        const res = await AuthService.refresh(); // BE đọc cookie rt
         const newAccessToken = res?.accessToken;
 
         if (newAccessToken) {
@@ -88,7 +94,7 @@ api.interceptors.response.use(
             } catch {}
           }
 
-          // set header mặc định + flush queue + retry
+          // set header mặc định và retry các request đang đợi
           api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
           flushQueue(newAccessToken);
 
@@ -97,27 +103,19 @@ api.interceptors.response.use(
           return api(original);
         }
 
-        // Không lấy được token mới
+        // không lấy được token mới
         flushQueue(null);
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("auth");
-        }
-        // ❗ Không redirect ở đây — để UI/guard quyết định
+        if (typeof window !== "undefined") localStorage.removeItem("auth");
         return Promise.reject(error);
       } catch (e) {
-        // Refresh fail
         flushQueue(null);
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("auth");
-        }
-        // ❗ Không redirect ở đây
+        if (typeof window !== "undefined") localStorage.removeItem("auth");
         return Promise.reject(e);
       } finally {
         isRefreshing = false;
       }
     }
 
-    // Các mã khác: trả về UI xử lý
     return Promise.reject(error);
   }
 );

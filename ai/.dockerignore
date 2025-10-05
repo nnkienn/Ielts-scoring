@@ -1,5 +1,7 @@
-__pycache__
-.venv
-.git
-Dockerfile*
-.dockerignore
+__pycache__/
+*.py[cod]
+*.log
+.env*
+.vscode/
+.git/
+tests/

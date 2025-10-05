@@ -1,0 +1,18 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8000
+
+# Cài deps trước để cache tốt
+COPY requirements.txt .
+# thêm watchdog để reload mượt
+RUN pip install --no-cache-dir -r requirements.txt watchdog uvicorn[standard]
+
+# Copy source
+COPY . .
+
+EXPOSE 8000
+# Dùng PORT nếu có (compose có thể map), mặc định 8000
+CMD ["bash", "-lc", "python -m uvicorn main:app --reload --host 0.0.0.0 --port ${PORT:-8000}"]

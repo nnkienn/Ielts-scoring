@@ -13,7 +13,7 @@ export class OpenAIService {
 
   async translate(text: string, target: string = 'vi'): Promise<string> {
     const res = await this.client.chat.completions.create({
-      model: 'gpt-4o-mini', // rẻ và nhanh
+      model: 'gpt-4o-mini', 
       messages: [
         {
           role: 'system',

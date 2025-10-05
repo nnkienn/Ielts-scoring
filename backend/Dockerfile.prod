@@ -1,0 +1,54 @@
+# ---------- deps stage ----------
+FROM node:20-bookworm-slim AS deps
+WORKDIR /app
+
+# Toolchain để build dev deps nếu cần
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 build-essential openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY package*.json ./
+# Cài full deps (cả dev) để build Nest
+RUN npm ci
+
+# Copy schema để có thể generate ở stage build (tối ưu cache)
+COPY prisma ./prisma
+RUN npx prisma generate
+
+# ---------- build stage ----------
+FROM node:20-bookworm-slim AS builder
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+# Build Nest -> dist
+RUN npm run build
+
+# ---------- run stage ----------
+FROM node:20-bookworm-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production \
+    TZ=Asia/Ho_Chi_Minh
+
+# Prisma runtime cần openssl
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# Chỉ copy những gì cần cho runtime
+COPY --from=builder /app/dist ./dist
+COPY prisma ./prisma
+COPY package*.json ./
+
+# Cài chỉ production deps
+RUN npm ci --omit=dev
+
+# Generate Prisma Client trong môi trường runtime để đảm bảo engine đúng
+RUN npx prisma generate
+
+# Railway sẽ đặt PORT; Nest cần listen 0.0.0.0
+EXPOSE 3000
+
+# Chạy migrate rồi start app
+# (Bạn nhớ trong main.ts: app.listen(process.env.PORT || 3000, '0.0.0.0'))
+CMD ["bash", "-lc", "npx prisma migrate deploy && node dist/main.js"]

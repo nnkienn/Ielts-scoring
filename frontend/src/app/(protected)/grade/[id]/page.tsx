@@ -1,27 +1,34 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useSelector } from "react-redux";
-import { useAppDispatch } from "@/hook/useAppDispatch";
-import { RootState } from "@/store/store";
-import { fetchEssay, socketEssayUpdate, retryEssay } from "@/store/Slices/essaySlice";
-import { initSocket } from "@/lib/socket";
+import { RotateCcw } from "lucide-react";
 
 import PrivateNavbar from "@/components/layout/PrivateNavbar";
 import Footer from "@/components/layout/Footer";
 import EssayResult from "@/components/grade/EssayResult";
-import EssayContent from "@/components/grade/EssayContent"; // 👈 ADD
+import EssayContent from "@/components/grade/EssayContent";
 
-import { RotateCcw } from "lucide-react";
+import { useAppDispatch } from "@/hook/useAppDispatch";
+import { useAppSelector } from "@/hook/useAppSelector";
+import { RootState } from "@/store/store";
+import {
+  fetchEssay,
+  socketEssayUpdate,
+  retryEssay,
+} from "@/store/Slices/essaySlice";
+import { initSocket } from "@/lib/socket";
 
 export default function GradeDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params?.id);
 
   const dispatch = useAppDispatch();
-  const { currentEssay, loading, error } = useSelector((s: RootState) => s.essays);
+  const { currentEssay, loading, error } = useAppSelector(
+    (s: RootState) => s.essays
+  );
+  const accessToken = useAppSelector((s: RootState) => s.auth.accessToken);
 
   // 1) Fetch essay by id
   useEffect(() => {
@@ -29,22 +36,27 @@ export default function GradeDetailPage() {
     dispatch(fetchEssay(id));
   }, [id, dispatch]);
 
-  // 2) Join Socket.IO room + subscribe realtime
+  // 2) Join Socket.IO room + subscribe realtime (null-safe + token-safe)
   useEffect(() => {
     if (!id || Number.isNaN(id)) return;
-    const socket = initSocket();
+
+    const socket = initSocket(accessToken ?? undefined);
+    if (!socket) return; // SSR guard (hoặc nếu WS chưa khởi tạo)
+
     const channel = `essay_update_${id}`;
-    const handler = (data: any) => { dispatch(socketEssayUpdate(data)); };
+    const handler = (data: any) => dispatch(socketEssayUpdate(data));
 
     socket.emit("joinEssay", { essayId: id });
     socket.off(channel, handler);
     socket.on(channel, handler);
 
-    return () => { socket.off(channel, handler); }; // ✅ cleanup void
-  }, [id, dispatch]);
+    return () => {
+      socket.off(channel, handler);
+    };
+  }, [id, dispatch, accessToken]);
 
   const canRetry =
-    currentEssay &&
+    !!currentEssay &&
     (currentEssay.status === "failed" || currentEssay.status === "done");
 
   return (
@@ -79,11 +91,17 @@ export default function GradeDetailPage() {
         {/* Content */}
         <div className="max-w-5xl mx-auto w-full p-6">
           <div className="bg-white rounded-2xl shadow p-4">
-            {(!id || Number.isNaN(id)) && <div className="text-rose-600">Invalid essay id.</div>}
-            {error && !currentEssay && <div className="text-rose-600">Error: {error}</div>}
-            {loading && !currentEssay && <div className="text-gray-500">Loading…</div>}
+            {(!id || Number.isNaN(id)) && (
+              <div className="text-rose-600">Invalid essay id.</div>
+            )}
+            {error && !currentEssay && (
+              <div className="text-rose-600">Error: {error}</div>
+            )}
+            {loading && !currentEssay && (
+              <div className="text-gray-500">Loading…</div>
+            )}
 
-            {/* 👉 Hiển thị bài text + prompt */}
+            {/* Bài viết + prompt */}
             {currentEssay && (
               <EssayContent
                 prompt={currentEssay.prompt}
@@ -92,7 +110,7 @@ export default function GradeDetailPage() {
               />
             )}
 
-            {/* 👉 Kết quả chấm điểm */}
+            {/* Kết quả chấm điểm */}
             {currentEssay && <EssayResult essay={currentEssay} />}
           </div>
         </div>

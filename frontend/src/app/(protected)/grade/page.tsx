@@ -1,4 +1,6 @@
+// src/app/(protected)/grade/page.tsx
 "use client";
+
 import { useState, useEffect } from "react";
 import { useAppDispatch } from "@/hook/useAppDispatch";
 import { useSelector } from "react-redux";
@@ -11,9 +13,6 @@ import PrivateNavbar from "@/components/layout/PrivateNavbar";
 import EssayResult from "@/components/grade/EssayResult";
 import { initSocket } from "@/lib/socket";
 
-// Heroicons
-import { ChevronUpDownIcon, CheckIcon } from "@heroicons/react/24/solid";
-
 export default function GradePage() {
   const [text, setText] = useState("");
   const [promptId, setPromptId] = useState<number | "">("");
@@ -22,7 +21,9 @@ export default function GradePage() {
 
   const dispatch = useAppDispatch();
   const { currentEssay, loading } = useSelector((s: RootState) => s.essays);
+  const accessToken = useSelector((s: RootState) => s.auth.accessToken);
 
+  // Demo prompts — tùy bạn thay bằng data thực tế
   const prompts = [
     { id: 1, question: "Some people think international trade is beneficial." },
     { id: 2, question: "Technology has changed the way we communicate." },
@@ -31,45 +32,48 @@ export default function GradePage() {
 
   const handleSubmit = async () => {
     const payload: any = { text };
-    if (promptId) payload.promptId = promptId;
-    else {
+    if (promptId) {
+      payload.promptId = promptId;
+    } else {
       payload.question = question;
       payload.taskType = taskType;
     }
 
     try {
       const res = await dispatch(submitEssay(payload)).unwrap();
-      const id = res.id ?? res.essayId;
-      if (id) {
-        const socket = initSocket();
-        const channel = `essay_update_${id}`;
+      const id = res?.id ?? res?.essayId;
+      if (!id) return;
 
-        socket.emit("joinEssay", { essayId: id });
-        socket.off(channel);
-        socket.on(channel, (data) => dispatch(socketEssayUpdate(data)));
-      }
+      // Khởi tạo socket (client only) và JOIN room
+      const sock = initSocket(accessToken);
+      if (!sock) return;
+
+      const channel = `essay_update_${id}`;
+      sock.emit("joinEssay", { essayId: id });
+      sock.off(channel); // tránh duplicate listener
+      sock.on(channel, (data) => dispatch(socketEssayUpdate(data)));
     } catch (err) {
       console.error("❌ Submit essay error:", err);
     }
   };
 
-  // 👂 Khi reload -> re-subscribe
+  // Re-subscribe khi refresh hoặc khi currentEssay đổi
   useEffect(() => {
-    const socket = initSocket();
     const id = currentEssay?.id ?? currentEssay?.essayId;
+    if (!id) return;
 
-    if (id) {
-      const channel = `essay_update_${id}`;
-      socket.emit("joinEssay", { essayId: id });
-      socket.off(channel);
-      socket.on(channel, (data) => dispatch(socketEssayUpdate(data)));
+    const sock = initSocket(accessToken);
+    if (!sock) return;
 
-      // ✅ cleanup chuẩn
-      return () => {
-        socket.off(channel);
-      };
-    }
-  }, [dispatch, currentEssay?.id, currentEssay?.essayId]);
+    const channel = `essay_update_${id}`;
+    sock.emit("joinEssay", { essayId: id });
+    sock.off(channel);
+    sock.on(channel, (data) => dispatch(socketEssayUpdate(data)));
+
+    return () => {
+      sock.off(channel);
+    };
+  }, [dispatch, currentEssay?.id, currentEssay?.essayId, accessToken]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -96,7 +100,7 @@ export default function GradePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 items-start">
           <div className="flex flex-col gap-4 h-full">
-            {/* 🔥 Modern Choose Prompt */}
+            {/* Choose Prompt */}
             <div className="bg-white rounded-2xl shadow p-6 border border-gray-100">
               <h2 className="text-lg font-bold text-teal-700 mb-4 flex items-center gap-2">
                 ✍️ Choose Prompt
@@ -109,8 +113,8 @@ export default function GradePage() {
                 </label>
                 <select
                   className="w-full border-gray-300 text-gray-800 font-medium 
-                            focus:border-teal-500 focus:ring-2 focus:ring-teal-500 
-                            rounded-lg p-2.5 shadow-sm transition cursor-pointer"
+                             focus:border-teal-500 focus:ring-2 focus:ring-teal-500 
+                             rounded-lg p-2.5 shadow-sm transition cursor-pointer"
                   value={promptId}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -122,11 +126,7 @@ export default function GradePage() {
                     -- Select prompt --
                   </option>
                   {prompts.map((p) => (
-                    <option
-                      key={p.id}
-                      value={p.id}
-                      className="hover:bg-teal-100 cursor-pointer"
-                    >
+                    <option key={p.id} value={p.id} className="hover:bg-teal-100">
                       {p.question}
                     </option>
                   ))}
@@ -144,9 +144,9 @@ export default function GradePage() {
                       type="text"
                       placeholder="Write your own question..."
                       className="w-full border-gray-300 text-gray-800 font-medium 
-                                placeholder:text-gray-400 
-                                focus:border-teal-500 focus:ring-2 focus:ring-teal-500 
-                                rounded-lg p-2.5 shadow-sm"
+                                 placeholder:text-gray-400 
+                                 focus:border-teal-500 focus:ring-2 focus:ring-teal-500 
+                                 rounded-lg p-2.5 shadow-sm"
                       value={question}
                       onChange={(e) => setQuestion(e.target.value)}
                     />
@@ -158,8 +158,8 @@ export default function GradePage() {
                     </label>
                     <select
                       className="w-full border-gray-300 text-gray-800 font-medium 
-                                focus:border-teal-500 focus:ring-2 focus:ring-teal-500 
-                                rounded-lg p-2.5 shadow-sm cursor-pointer"
+                                 focus:border-teal-500 focus:ring-2 focus:ring-teal-500 
+                                 rounded-lg p-2.5 shadow-sm cursor-pointer"
                       value={taskType}
                       onChange={(e) => setTaskType(e.target.value)}
                     >
@@ -174,11 +174,11 @@ export default function GradePage() {
             {/* Editor */}
             <EditorUI onChange={setText} />
 
-            {/* Submit Button */}
+            {/* Submit */}
             <button
               onClick={handleSubmit}
-              className="w-full md:w-auto bg-teal-600 hover:bg-teal-700 text-white py-2 px-6 rounded-lg font-semibold shadow-md transition"
-              disabled={loading}
+              className="w-full md:w-auto bg-teal-600 hover:bg-teal-700 text-white py-2 px-6 rounded-lg font-semibold shadow-md transition disabled:opacity-60"
+              disabled={loading || !text.trim()}
             >
               {loading ? "Submitting..." : "Submit Essay"}
             </button>

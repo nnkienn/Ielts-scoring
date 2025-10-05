@@ -1,0 +1,28 @@
+# Dev container cho NestJS + Prisma
+FROM node:20-bookworm-slim
+
+WORKDIR /app
+
+# Cần toolchain để build native deps (vd: bcrypt) + openssl cho Prisma
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 build-essential openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# Tối ưu cache: cài deps trước
+COPY package*.json ./
+RUN npm install
+
+# Copy nguồn
+COPY . .
+
+# Generate Prisma Client (types + engines)
+RUN npx prisma generate
+
+# Watcher ổn định khi mount volume trên Windows/macOS
+ENV CHOKIDAR_USEPOLLING=1 \
+    TZ=Asia/Ho_Chi_Minh
+
+EXPOSE 3000
+
+# Dev: Nest watch
+CMD ["npm", "run", "start:dev"]

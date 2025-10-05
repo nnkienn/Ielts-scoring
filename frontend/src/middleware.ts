@@ -1,23 +1,45 @@
+// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const AUTH_PAGES = ["/signin", "/signup"];
+const PROTECTED_PREFIXES = [
+  "/homepage",
+  "/translate",
+  "/grade",
+  "/grade-list",
+  "/payment",           // 👈 thêm trang thanh toán
+  "/payment-history",
+  "/setting",
+];
+
+// Các trang công khai (Stripe sẽ redirect về đây)
+const PUBLIC_EXACT = ["/success", "/cancel"]; // đổi thành '/payment/success'... nếu bạn dùng path khác
+
 export function middleware(req: NextRequest) {
-  const rt = req.cookies.get("rt")?.value;
   const { pathname } = req.nextUrl;
 
-  const isAuthPage =
-    pathname.startsWith("/signin") || pathname.startsWith("/signup");
+  // Cho qua các trang public
+  if (PUBLIC_EXACT.includes(pathname)) {
+    return NextResponse.next();
+  }
 
-  const isProtected =
-    pathname.startsWith("/homepage") ;
+  const isAuthPage = AUTH_PAGES.some((p) => pathname.startsWith(p));
+  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
 
-  if (!rt && isProtected) {
+  // rt = refresh token (httpOnly) do backend set
+  const hasRT = Boolean(req.cookies.get("rt")?.value);
+
+  // Chưa đăng nhập mà vào trang cần bảo vệ -> chuyển về /signin
+  if (!hasRT && isProtected) {
     const url = req.nextUrl.clone();
     url.pathname = "/signin";
+    url.searchParams.set("next", pathname); // optional: quay lại trang cũ sau khi login
     return NextResponse.redirect(url);
   }
 
-  if (rt && isAuthPage) {
+  // Đã đăng nhập mà vào /signin|/signup -> đẩy về /homepage
+  if (hasRT && isAuthPage) {
     const url = req.nextUrl.clone();
     url.pathname = "/homepage";
     return NextResponse.redirect(url);
@@ -34,7 +56,10 @@ export const config = {
     "/translate",
     "/grade",
     "/grade-list",
+    "/payment",          // 👈 nhớ thêm
     "/payment-history",
-    "/setting"
+    "/setting",
+    "/success",          // public
+    "/cancel",           // public
   ],
 };

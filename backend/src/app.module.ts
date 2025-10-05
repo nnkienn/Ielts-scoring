@@ -19,10 +19,12 @@ import { EssayProcessor } from './essay/essay.processor';
 import { PaymentModule } from './payment/payment.module';
 import { CreditModule } from './credit/credit.module';
 
-
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`, // 👈 load env theo NODE_ENV
+    }),
     JwtModule.register({}),
     UsersModule,
     AuthModule,

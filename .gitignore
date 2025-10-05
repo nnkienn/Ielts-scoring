@@ -1,12 +1,17 @@
 # =========================
-# Node.js & npm
+# 📦 Node.js / npm / pnpm
 # =========================
 node_modules/
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 package-lock.json
+pnpm-lock.yaml
+yarn.lock
 
 # =========================
-# Build output
+# 🏗 Build outputs
 # =========================
 # NestJS
 dist/
@@ -14,54 +19,106 @@ dist/
 .next/
 out/
 build/
+.cache/
 
 # =========================
-# Environment files
+# ⚙️ Environment files
 # =========================
-# Ignore tất cả file env (root + subfolders)
+# Ignore toàn bộ env thật (root + subfolder)
 .env
 .env.*
 *.env
 *.env.*
-
-# Giữ lại file ví dụ cho team
+# Giữ lại file ví dụ (cho team)
 !*.env.example
 
-# Ignore env riêng trong thư mục ai/
+# Ignore riêng từng service
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
 ai/.env
 ai/.env.*
 
 # =========================
-# Python (AI folder)
+# 🧠 Python (AI service)
 # =========================
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.python-version
+.venv/
+venv/
+.env/
 
 # =========================
-# Logs & temp
+# 🐳 Docker
+# =========================
+*.pid
+*.tar
+docker-compose.override.yml
+docker-compose.dev.yml
+docker-compose.local.yml
+.docker/
+docker-data/
+volumes/
+tmp/
+*.bak
+
+# =========================
+# 🗂 Prisma / Database
+# =========================
+# (Nếu muốn commit migration → comment lại)
+prisma/migrations/
+*.db
+*.sqlite
+
+# =========================
+# 🪵 Logs & Temp files
 # =========================
 logs/
 *.log
 *.tmp
 *.swp
+*.swo
+temp/
+.cache/
+coverage/
 
 # =========================
-# IDE / OS
+# 💻 IDE / OS
 # =========================
 .vscode/
 .idea/
+*.iml
 .DS_Store
 Thumbs.db
 
 # =========================
-# Prisma
-# (⚠️ Nếu muốn commit migrations thì comment dòng dưới đi)
-# prisma/migrations/
-
-# =========================
-# Test & Coverage
+# 🧪 Tests
 # =========================
 coverage/
+jest-html-reporters-*.html
+test-results/
+reports/
+__tests__/
+
+# =========================
+# 📸 Assets
+# =========================
+*.local.png
+*.local.jpg
+*.local.jpeg
+*.local.gif
+
+# =========================
+# 🧰 Misc
+# =========================
+*.bak
+*.orig
+*.rej
+*.swp
+*.zip
+*.tar.gz
+*.tgz

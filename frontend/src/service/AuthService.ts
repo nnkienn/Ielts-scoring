@@ -1,12 +1,7 @@
-import axios from "axios";
+// src/services/AuthService.ts
+import api from "./apiService";
 
-const api = axios.create({
-  baseURL: "http://localhost:3000", // backend NestJS
-  withCredentials: true, // ⚡ cho phép cookie (refreshToken) đi kèm
-});
-
-// ✅ Kiểu dữ liệu trả về từ backend
-// ✅ Kiểu dữ liệu trả về từ backend
+/** Kiểu dữ liệu trả về từ backend */
 export interface User {
   id: number;
   email: string;
@@ -14,7 +9,6 @@ export interface User {
   roleId?: number;
   role?: { id: number; name: string };
 
-  // 👇 thêm các field backend trả về
   freeCredits: number;
   paidCredits: number;
   avatar?: string | null;
@@ -30,39 +24,35 @@ export interface AuthResponse {
   accessToken: string;
 }
 
-
-// AuthService: login, register, refresh
 export const AuthService = {
   // LOGIN
-  login: async (email: string, password: string): Promise<AuthResponse> => {
-    const res = await api.post("/auth/login", { email, password });
-    return res.data;
+  async login(email: string, password: string): Promise<AuthResponse> {
+    const { data } = await api.post("/auth/login", { email, password });
+    return data;
   },
 
-  register: async (
-    name: string,
-    email: string,
-    password: string
-  ): Promise<AuthResponse> => {
-    const res = await api.post("/auth/register", {
+  // REGISTER
+  async register(name: string, email: string, password: string): Promise<AuthResponse> {
+    const { data } = await api.post("/auth/register", {
       name,
       email,
       password,
       roleId: 2,
     });
-    return res.data;
+    return data;
   },
 
-  // REFRESH TOKEN → backend đọc từ cookie HttpOnly
-  refresh: async (): Promise<{ accessToken: string }> => {
-    const res = await api.post("/auth/refresh");
-    return res.data;
+  // REFRESH TOKEN (backend đọc cookie HttpOnly)
+  async refresh(): Promise<{ accessToken: string }> {
+    const { data } = await api.post("/auth/refresh");
+    return data;
   },
-   logout: async () => {
-    const res = await api.post("/auth/logout", {}, { withCredentials: true });
-    return res.data;
+
+  // LOGOUT
+  async logout() {
+    const { data } = await api.post("/auth/logout", {});
+    return data;
   },
-  
 };
 
-export default api;
+export default AuthService;

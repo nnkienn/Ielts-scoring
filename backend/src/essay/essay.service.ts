@@ -1,4 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { PrismaService } from 'prisma/prisma.service';
 import { RabbitMQService } from 'src/config/rabbitmq.service';
@@ -21,10 +27,12 @@ export class EssayService {
       const prompt = await this.prismaService.prompt.findUnique({
         where: { id: data.promptId },
       });
-      if (!prompt) throw new Error('Prompt not found');
+      if (!prompt) throw new NotFoundException('Prompt not found');
       return prompt;
     }
-    if (!data.question || !data.taskType) throw new Error('Missing prompt data');
+    if (!data.question || !data.taskType) {
+      throw new BadRequestException('Missing prompt data');
+    }
 
     return await this.prismaService.prompt.upsert({
       where: {
@@ -46,9 +54,9 @@ export class EssayService {
   ) {
     const redis = this.redisService.getClient();
 
-    // 1) check credits
+    // 1) check credits (ném 402 nếu hết)
     const hasCredits = await this.creditService.hasCredits(userId);
-    if (!hasCredits) throw new Error('Insufficient credits');
+    if (!hasCredits) throw new HttpException('Insufficient credits', 402);
 
     // 2) hash text -> cache key
     const hash = await this.hashText(data.text);
@@ -64,14 +72,14 @@ export class EssayService {
       if (essay) {
         return {
           ...essay,
-          id: essay.id, // đảm bảo có id
+          id: essay.id,
           status: essay.status.toLowerCase(),
           reused: true,
         };
       }
     }
 
-    // 4) decrement credits
+    // 4) decrement credits (hàm này cũng ném 402 nếu hết)
     await this.creditService.decrementCredits(userId);
 
     // 5) check/create prompt
@@ -99,7 +107,6 @@ export class EssayService {
       promptId: prompt.id,
     });
 
-    // Trả về format thống nhất
     return {
       id: essay.id,
       status: essay.status.toLowerCase(),
@@ -114,10 +121,10 @@ export class EssayService {
       where: { id: essayId },
       include: { grading: true, prompt: true, user: { include: { role: true } } },
     });
-    if (!essay) throw new Error('Essay not found');
+    if (!essay) throw new NotFoundException('Essay not found');
 
     if (essay.userId !== userId && essay.user.role.name !== 'admin') {
-      throw new Error('Access denied');
+      throw new ForbiddenException('Access denied');
     }
 
     return {
@@ -140,9 +147,11 @@ export class EssayService {
 
   async deleteEssay(essayId: number, userId: number) {
     const essay = await this.prismaService.essaySubmission.findUnique({ where: { id: essayId } });
-    if (!essay) throw new Error('Essay not found');
-    if (essay.userId !== userId) throw new Error('Access denied');
-    if (essay.status !== EssayStatus.PENDING) throw new Error('Cannot delete graded essay');
+    if (!essay) throw new NotFoundException('Essay not found');
+    if (essay.userId !== userId) throw new ForbiddenException('Access denied');
+    if (essay.status !== EssayStatus.PENDING) {
+      throw new BadRequestException('Cannot delete graded essay');
+    }
     return this.prismaService.essaySubmission.delete({ where: { id: essayId } });
   }
 
@@ -151,8 +160,8 @@ export class EssayService {
       where: { id: essayId },
       include: { prompt: true },
     });
-    if (!essay) throw new Error('Essay not found');
-    if (essay.userId !== userId) throw new Error('Access denied');
+    if (!essay) throw new NotFoundException('Essay not found');
+    if (essay.userId !== userId) throw new ForbiddenException('Access denied');
 
     await this.rabbitMQService.publish({
       essayId: essay.id,
